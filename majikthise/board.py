@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 
 import numpy as np
+import re
 
 from bitboard import *
 
@@ -85,6 +86,13 @@ class Square(IntEnum):
 	H8 = 63
 	NONE = 64
 
+	def bitboard(self):
+		return np.uint64(0x01) << np.uint64(self.value)
+
+	def isEmpty(self, board: 'CBoard'):
+		# Returns true if no white or black pieces occupy the square.
+		return not bool(self.bitboard() & (WHITE_BOARD(board) | BLACK_BOARD(board)))
+
   #SQUARE_NB = 64
 
 class Dir(IntEnum):
@@ -158,26 +166,31 @@ class CBoard:
 
 class Position:
 	def __init__(self):
-		self.parent: Position = None
-		self.board: CBoard = None
+		self.parent: 'Position' = None
+		self.board: CBoard = CBoard()
 		self.wAttacks: CBoard = None
 		self.bAttacks: CBoard = None
 
 		self.sideToMove: Color = Color.WHITE
 		self.halfmove_clock = 0
 
-		self.wkCastle = 0
-		self.wqCastle = 0
-		self.bkCastle = 0
-		self.bqCastle = 0
+		# If 1, then castling is allowed.
+		self.wkCastle = 1
+		self.wqCastle = 1
+		self.bkCastle = 1
+		self.bqCastle = 1
 
 		self.epTargetSquare: Square = Square.NONE
 
+
+	def applyMove(self, move: 'Move'):
+		return
+
 class Move:
-	def __init__(self, origin: Square, destination: Square, flag = 0):
-		self.origin = origin
-		self.destination = destination
-		self.flag = flag
+	def __init__(self, origin: Square=Square.NONE, destination: Square=Square.NONE, flag=0):
+			self.origin = origin
+			self.destination = destination
+			self.flag=flag
 
 	def __eq__(self, other):
 		return self.origin == other.origin and \
@@ -193,3 +206,39 @@ class Move:
 
 	def __str__(self):
 		return "Origin: " + str(self.origin) + " Destination: " + str(self.destination) + " Flag: " + str(self.flag)
+
+	@staticmethod
+	def fromLongAlgebraic(command='', position=None):
+		'''
+		https://en.wikipedia.org/wiki/Algebraic_notation_(chess)#Long_algebraic_notation
+
+		See the Stockfish implementation:
+		https://github.com/official-stockfish/Stockfish/blob/master/src/uci.cpp Line 380
+		It creates a move list first from a given position, then iterates through to see which move it matches
+
+		'''
+		return
+
+
+	@staticmethod
+	def getFlag(move, position: Position):
+		# https://www.chessprogramming.org/Encoding_Moves
+		# Double pawn push
+		origin = _squareToInt(move[:2])
+		destination = _squareToInt(move[2:])
+		if Square.B1 <= origin <= Square.B8 \
+			and Square.D1 <= destination <= Square.D8 \
+			and position.board.whitePawns ^ np.uint64():
+				return
+		
+	@staticmethod
+	def _squareToInt(square):
+		'''
+		Convert a string square to an integer corresponding to the Square enum.
+		For example, a1 = 0, a5=40, c2=10
+		This function should be tested.
+		'''
+		square = square.lower()
+		if not re.search(square, '[abcdefgh][12345678'):
+			raise ValueError("Square not valid: {square}")
+		return (square[1]-1)*8 + (ord(square[0])-97)

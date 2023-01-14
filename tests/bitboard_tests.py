@@ -29,6 +29,10 @@ class BitboardTests(unittest.TestCase):
 		b = np.uint64(0x8000000000000000)
 		self.assertEqual(BSF(b), np.uint64(63))
 
+	def test_bsf_17179869219(self):
+		b = np.uint64(17179869219)
+		self.assertEqual(BSF(b), 4)
+
 	def test_bsr_0b00(self):
 		self.assertRaises(AssertionError, BSR, np.uint64(0b00))
 

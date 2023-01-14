@@ -1,0 +1,3 @@
+build/
+majikthise/__pycache__/
+*.pyc
