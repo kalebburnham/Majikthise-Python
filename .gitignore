@@ -1,3 +1,4 @@
 build/
 majikthise/__pycache__/
 *.pyc
+majikthise/majikthise.spec
