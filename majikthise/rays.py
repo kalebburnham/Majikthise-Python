@@ -4,12 +4,11 @@ from board import *
 from bitboard import *
 
 a = 1
-RAYS = [[np.uint64(0)] * 64] * 8 # of type Board
+RAYS = [[np.uint64(0)] * 64 for i in range(8)] # of type Board
 
 
 # Source: https://www.chessprogramming.org/On_an_empty_Board
 
-# Work in progress
 def initRays():
 	for sq in range(np.uint64(64)):
 		sq = np.uint64(sq)
@@ -47,5 +46,6 @@ def initRays():
 		diag = (diag >> np.uint64(1)) & ~H_FILE
 		diag2 = diag
 		for file in range(8):
-			diag2 = (diag << np.uint64(1)) & ~A_FILE
+			diag2 = (diag2 << np.uint64(1)) & ~A_FILE
 			RAYS[Dir.SOUTH_EAST][rank*8+file] = diag2
+	

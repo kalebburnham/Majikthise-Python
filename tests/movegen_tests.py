@@ -6,6 +6,7 @@ import unittest
 from bitboard import *
 from board import *
 from movegen import *
+from rays import *
 
 class MovegenTests(unittest.TestCase):
 
@@ -38,9 +39,9 @@ class PawnMoveTests(unittest.TestCase):
 		00000000
 		'''
 
-		board = CBoard()
-		board.whitePawns = np.uint64(0x080100)
-		moves = wGeneratePawnPushMoves(board)
+		position = Position()
+		position.board.whitePawns = np.uint64(0x080100)
+		moves = wGeneratePawnPushMoves(position)
 		move1 = Move(origin=Square.A2, destination=Square.A3)
 		move2 = Move(origin=Square.D3, destination=Square.D4)
 		self.assertCountEqual(moves, [move1, move2])
@@ -59,10 +60,10 @@ class PawnMoveTests(unittest.TestCase):
 		00000000
 		00000000
 		'''
-		board = CBoard()
-		board.whitePawns = np.uint64(0x0104000000)
-		board.blackPawns = np.uint64(0x0400000000)
-		moves = wGeneratePawnPushMoves(board)
+		position = Position()
+		position.board.whitePawns = np.uint64(0x0104000000)
+		position.board.blackPawns = np.uint64(0x0400000000)
+		moves = wGeneratePawnPushMoves(position)
 		expectedMove = Move(origin=Square.A5, destination=Square.A6)
 		self.assertCountEqual(moves, [expectedMove])
 
@@ -73,9 +74,9 @@ class PawnMoveTests(unittest.TestCase):
 
 		Place one pawn on A7. No moves should be returned.
 		'''
-		board = CBoard()
-		board.whitePawns = np.uint64(0x0001000000000000)
-		moves = wGeneratePawnPushMoves(board)
+		position = Position()
+		position.board.whitePawns = np.uint64(0x0001000000000000)
+		moves = wGeneratePawnPushMoves(position)
 		self.assertCountEqual(moves, [])
 
 	def test_bPawnPush_NoBlockers(self):
@@ -92,9 +93,9 @@ class PawnMoveTests(unittest.TestCase):
 		00000000
 		00000000
 		'''
-		board = CBoard()
-		board.blackPawns = np.uint64(0x0400800000)
-		moves = bGeneratePawnPushMoves(board)
+		position = Position()
+		position.board.blackPawns = np.uint64(0x0400800000)
+		moves = bGeneratePawnPushMoves(position)
 		move1 = Move(origin=Square.C5, destination=Square.C4)
 		move2 = Move(origin=Square.H3, destination=Square.H2)
 
@@ -103,10 +104,10 @@ class PawnMoveTests(unittest.TestCase):
 		Place an unobstructed black pawn on C5 and an obstructed pawn on H3 and
 		generate their single space pushes.
 		'''
-		board = CBoard()
-		board.blackPawns = np.uint64(0x0400800000)
-		board.whitePawns = SECOND_RANK
-		moves = bGeneratePawnPushMoves(board)
+		position = Position()
+		position.board.blackPawns = np.uint64(0x0400800000)
+		position.board.whitePawns = SECOND_RANK
+		moves = bGeneratePawnPushMoves(position)
 		expectedMove = Move(origin=Square.C5, destination=Square.C4)
 		self.assertCountEqual(moves, [expectedMove])
 
@@ -117,9 +118,9 @@ class PawnMoveTests(unittest.TestCase):
 
 		Place one pawn on A2. No moves should be returned.
 		'''
-		board = CBoard()
-		board.blackPawns = np.uint64(0x100)
-		moves = bGeneratePawnPushMoves(board)
+		position = Position()
+		position.board.blackPawns = np.uint64(0x100)
+		moves = bGeneratePawnPushMoves(position)
 		self.assertCountEqual(moves, [])
 
 	def test_wDoublePawnPush_NoBlockers(self):
@@ -127,9 +128,9 @@ class PawnMoveTests(unittest.TestCase):
 		Place all white pawns on the second rank with no blockers. Verify they
 		all move to the fourth rank.
 		'''
-		board = CBoard()
-		board.whitePawns = SECOND_RANK
-		moves = wGenerateDoublePawnPushMoves(board)
+		position = Position()
+		position.board.whitePawns = SECOND_RANK
+		moves = wGenerateDoublePawnPushMoves(position)
 		expectedMoves = [Move(Square.A2, Square.A4),
 						Move(Square.B2, Square.B4),
 						Move(Square.C2, Square.C4),
@@ -181,8 +182,8 @@ class KnightMoveTests(unittest.TestCase):
 		'''
 		At the very first move, test the moves the white knights can make.
 		'''
-		board = CBoard()
-		moves = generateKnightMoves(board, Color.WHITE)
+		position = Position()
+		moves = generateKnightMoves(position)
 		expected = [
 			Move(origin=Square.B1, destination=Square.A3),
 			Move(origin=Square.B1, destination=Square.C3),
@@ -193,18 +194,18 @@ class KnightMoveTests(unittest.TestCase):
 		self.assertCountEqual(moves, expected)
 
 	def test_wGenerateKnightMoves_NoKnightsExist(self):
-		board = CBoard()
-		board.whiteKnights = np.uint64(0)
-		moves = generateKnightMoves(board, Color.WHITE)
+		position = Position()
+		position.board.whiteKnights = np.uint64(0)
+		moves = generateKnightMoves(position)
 		expected = []
 		self.assertEqual(moves, expected)
 
 	def test_wGenerateKnightMoves_CombinationAttackBlocked(self):
 		# simulate game after moves 1. Nc3 e5 2. Nf3 d5 3. Ng5 e4
-		board = CBoard()
-		board.whiteKnights = Square.C3.bitboard() | Square.G5.bitboard()
-		board.blackPawns = np.uint64(0x00E7000810000000) # E4 and D5
-		moves = generateKnightMoves(board, Color.WHITE)
+		position = Position()
+		position.board.whiteKnights = Square.C3.bitboard() | Square.G5.bitboard()
+		position.board.blackPawns = np.uint64(0x00E7000810000000) # E4 and D5
+		moves = generateKnightMoves(position)
 
 		expected = [
 			Move(origin=Square.C3, destination=Square.B1),
@@ -226,8 +227,9 @@ class KnightMoveTests(unittest.TestCase):
 		'''
 		At the very first move, test the moves the black knights can make.
 		'''
-		board = CBoard()
-		moves = generateKnightMoves(board, Color.BLACK)
+		position = Position()
+		position.sideToMove = Color.BLACK
+		moves = generateKnightMoves(position)
 		expected = [
 			Move(origin=Square.B8, destination=Square.A6),
 			Move(origin=Square.B8, destination=Square.C6),
@@ -238,19 +240,20 @@ class KnightMoveTests(unittest.TestCase):
 		self.assertCountEqual(moves, expected)
 
 	def test_bGenerateKnightMoves_NoKnightsExist(self):
-		board = CBoard()
-		board.blackKnights = np.uint64(0)
-		moves = generateKnightMoves(board, Color.BLACK)
+		position = Position()
+		position.sideToMove = Color.BLACK
+		position.board.blackKnights = np.uint64(0)
+		moves = generateKnightMoves(position)
 		expected = []
 		self.assertEqual(moves, expected)
 
 	def test_bGenerateKnightMoves_CombinationAttackBlocked(self):
-		self.maxDiff = None
 		# simulate game after moves 1. e4 Nc6 2. d4 Nf6
-		board = CBoard()
-		board.blackKnights = Square.C6.bitboard() | Square.F6.bitboard()
-		board.whitePawns = np.uint64(0x0000000018000000) # D4 and E4
-		moves = generateKnightMoves(board, Color.BLACK)
+		position = Position()
+		position.sideToMove = Color.BLACK
+		position.board.blackKnights = Square.C6.bitboard() | Square.F6.bitboard()
+		position.board.whitePawns = np.uint64(0x0000000018000000) # D4 and E4
+		moves = generateKnightMoves(position)
 
 		expected = [
 			Move(origin=Square.C6, destination=Square.B8),
@@ -326,6 +329,235 @@ class KingMoveTests(unittest.TestCase):
 
 	def test_bGenerateKingMoves_QueensideCastle(self):
 		pass
+
+class RookMoveTests(unittest.TestCase):
+
+	@classmethod
+	def setUpClass(cls):
+		initRays()
+
+	def test_rookAttacks_A1(self):
+		blockers = np.uint64(0)
+		sq = Square.A1
+		bbAttacks = rookAttacks(sq, blockers)
+		expected = np.uint64(0x0101010101010100 | 0xfe)
+		self.assertEqual(bbAttacks, expected)
+
+	def test_rookAttacks_A8Starting(self):
+		position = Position()
+		blockers = (WHITE_BOARD(position.board) | BLACK_BOARD(position.board)) ^ Square.A8.bitboard()
+		sq = Square.A8
+		bbAttacks = rookAttacks(sq, blockers)
+		expected = Square.A7.bitboard() | Square.B8.bitboard()
+		self.assertEqual(bbAttacks, expected)
+
+	def test_rookAttacks_Trapped(self):
+		blockers = Square.D4.bitboard() | Square.E5.bitboard() | Square.E3.bitboard() | Square.F4.bitboard()
+		sq = Square.E4
+		bbAttacks = rookAttacks(sq, blockers)
+		expected = np.uint64(blockers)
+		self.assertEqual(bbAttacks, expected)
+
+	def test_rookAttacks_SemiTrapped(self):
+		blockers = Square.D4.bitboard() | Square.E5.bitboard() | Square.E3.bitboard()
+		sq = Square.E4
+		bbAttacks = rookAttacks(sq, blockers)
+		expected = np.uint64(blockers) | Square.F4.bitboard() | Square.G4.bitboard() | Square.H4.bitboard()
+		self.assertEqual(bbAttacks, expected)
+
+	def test_wGenerateRookMoves_StartingPosition(self):
+		position = Position()
+		moves = generateRookMoves(position)
+		expected = []
+		self.assertEqual(moves, expected)
+
+	def test_wGenerateRookMoves_a2a4(self):
+		position = Position()
+		position.board.whitePawns = (SECOND_RANK ^ Square.A2.bitboard()) | Square.A4.bitboard()
+		moves = generateRookMoves(position)
+		expected = [
+			Move(Square.A1, Square.A2),
+			Move(Square.A1, Square.A3)
+		]
+		self.assertEqual(moves, expected)
+
+	def test_wGenerateRookMoves_ComplexPosition(self):
+		position = Position(fen='3qr1k1/1p1n1ppp/2pb1n2/r2PPb2/B2P4/2N1B3/P1P3PP/R2QK1NR w kq - 0 12')
+		moves = generateRookMoves(position)
+		expected = [
+			Move(Square.A4, Square.A1),
+			Move(Square.A4, Square.A2),
+			Move(Square.A4, Square.A3),
+			Move(Square.A4, Square.A5, 0x04),
+			Move(Square.A4, Square.B4),
+			Move(Square.A4, Square.C4),
+			Move(Square.A4, Square.D4, 0x04),
+			Move(Square.E1, Square.F1),
+			Move(Square.E1, Square.E2),
+			Move(Square.E1, Square.E3),
+			Move(Square.E1, Square.E4, 0x04)
+		]
+		self.assertCountEqual(moves, expected)
+
+	def test_wGenerateRookMoves_NoRooksOnBoard(self):
+		position = Position()
+		position.board.whiteRooks = np.uint64(0)
+		moves = generateRookMoves(position)
+		expected = []
+		
+		self.assertEqual(moves, expected)
+
+	def test_bGenerateRookMoves_StartingPosition(self):
+		position = Position()
+		position.sideToMove = Color.BLACK
+		moves = generateRookMoves(position)
+		expected = []
+		self.assertEqual(moves, expected)
+
+	def test_bGenerateRookMoves_h4h5(self):
+		pass
+
+	def test_bGenerateRookMoves_ComplexPosition(self):
+		pass
+
+	def test_bGenerateRookMoves_NoRooksOnBoard(self):
+		pass
+
+class BishopMoveTests(unittest.TestCase):
+	@classmethod
+	def setUpClass(cls):
+		initRays()
+
+	def test_wGenerateBishopMoves_StartingBoard(self):
+		position = Position()
+		moves = generateBishopMoves(position)
+		expected = []
+		self.assertCountEqual(moves, expected)
+
+	def test_bGenerateBishopMoves_StartingBoard(self):
+		position = Position()
+		position.sideToMove = Color.BLACK
+		moves = generateBishopMoves(position)
+		expected = []
+		self.assertCountEqual(moves, expected)
+
+	def test_wGenerateBishopMoves_AfterPawns(self):
+		position = Position('rnbqkbnr/p1p2p1p/1p4p1/3pp3/3PP3/1P4P1/P1P2P1P/RNBQKBNR w KQkq')
+		moves = generateBishopMoves(position)
+		expected = [
+			Move(Square.C1, Square.B2),
+			Move(Square.C1, Square.A3),
+			Move(Square.C1, Square.D2),
+			Move(Square.C1, Square.E3),
+			Move(Square.C1, Square.F4),
+			Move(Square.C1, Square.G5),
+			Move(Square.C1, Square.H6),
+			Move(Square.F1, Square.A6),
+			Move(Square.F1, Square.B5),
+			Move(Square.F1, Square.C4),
+			Move(Square.F1, Square.D3),
+			Move(Square.F1, Square.E2),
+			Move(Square.F1, Square.G2),
+			Move(Square.F1, Square.H3),
+		]
+		self.assertCountEqual(moves, expected)
+
+	def test_bGenerateBishopMoves_AfterPawns(self):
+		position = Position('rnbqkbnr/p1p2p1p/1pp3p1/3pp3/3PP3/1P4P1/P1P2P1P/RNBQKBNR b KQkq')
+		position.sideToMove = Color.BLACK
+		moves = generateBishopMoves(position)
+		expected = [
+			Move(Square.C8, Square.B7),
+			Move(Square.C8, Square.A6),
+			Move(Square.C8, Square.D7),
+			Move(Square.C8, Square.E6),
+			Move(Square.C8, Square.F5),
+			Move(Square.C8, Square.G4),
+			Move(Square.C8, Square.H3),
+			Move(Square.F8, Square.A3),
+			Move(Square.F8, Square.B4),
+			Move(Square.F8, Square.C5),
+			Move(Square.F8, Square.D6),
+			Move(Square.F8, Square.E7),
+			Move(Square.F8, Square.G7),
+			Move(Square.F8, Square.H6),
+		]
+		self.assertCountEqual(moves, expected)
+
+	def test_wQueen_StartingBoard(self):
+		position = Position()
+		moves = generateQueenMoves(position)
+		expected = []
+		self.assertCountEqual(moves, expected)
+
+	def test_bQueen_StartingBoard(self):
+		position = Position()
+		position.sideToMove = Color.BLACK
+		moves = generateQueenMoves(position)
+		expected = []
+		self.assertCountEqual(moves, expected)
+
+	def test_wQueen_StartingBoardWithoutD2Pawn(self):
+		position = Position()
+		position.board.whitePawns = SECOND_RANK ^ Square.D2.bitboard()
+		moves = generateQueenMoves(position)
+		expected = [
+			Move(Square.D1, Square.D2),
+			Move(Square.D1, Square.D3),
+			Move(Square.D1, Square.D4),
+			Move(Square.D1, Square.D5),
+			Move(Square.D1, Square.D6),
+			Move(Square.D1, Square.D7, 0x04)
+		]
+		self.assertCountEqual(moves, expected)
+
+	def test_bQueen_StartingBoardWithoutD7Pawn(self):
+		position = Position()
+		position.board.blackPawns = SEVENTH_RANK ^ Square.D7.bitboard()
+		position.sideToMove = Color.BLACK
+		moves = generateQueenMoves(position)
+		expected = [
+			Move(Square.D8, Square.D7),
+			Move(Square.D8, Square.D6),
+			Move(Square.D8, Square.D5),
+			Move(Square.D8, Square.D4),
+			Move(Square.D8, Square.D3),
+			Move(Square.D8, Square.D2, 0x04)
+		]
+		self.assertCountEqual(moves, expected)
+
+	def test_wAllMoves_StartingPosition(self):
+		position = Position()
+		moves = generateAllMoves(position)
+		self.assertEqual(len(moves), 20)
+		expected = [
+			Move(Square.A2, Square.A3),
+			Move(Square.B2, Square.B3),
+			Move(Square.C2, Square.C3),
+			Move(Square.D2, Square.D3),
+			Move(Square.E2, Square.E3),
+			Move(Square.F2, Square.F3),
+			Move(Square.G2, Square.G3),
+			Move(Square.H2, Square.H3),
+			Move(Square.A2, Square.A4),
+			Move(Square.B2, Square.B4),
+			Move(Square.C2, Square.C4),
+			Move(Square.D2, Square.D4),
+			Move(Square.E2, Square.E4),
+			Move(Square.F2, Square.F4),
+			Move(Square.G2, Square.G4),
+			Move(Square.H2, Square.H4),
+			Move(Square.B1, Square.A3),
+			Move(Square.B1, Square.C3),
+			Move(Square.G1, Square.F3),
+			Move(Square.G1, Square.H3)
+		]
+		self.assertCountEqual(moves, expected)
+
+	def testbAllMoves_StartingPosition(self):
+		pass
+
+	# Test a bunch of random game positions.
 
 
 if __name__ == '__main__':

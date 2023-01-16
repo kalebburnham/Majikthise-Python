@@ -1,5 +1,7 @@
 from bitboard import *
 from board import *
+from rays import RAYS
+from printer import *
 
 # Knight moves
 def noNoEa(b: np.uint64()) -> np.uint64(): 
@@ -45,16 +47,33 @@ def southOne(b: np.uint64()) -> np.uint64():
 	return b >> np.uint64(8)
 
 
-def wGenerateAllMoves(position: Position):
-	pass
-
-def wGenerateBishopMoves(b: CBoard) -> list:
-	pass
+def generateAllMoves(position: Position):
+	moves = []
+	# Missing
+	if position.sideToMove == Color.WHITE:
+		# Still missing Pawn Capture And Promotion and En Passant moves.
+		moves.extend(wGeneratePawnPushMoves(position))
+		moves.extend(wGenerateDoublePawnPushMoves(position))
+		moves.extend(wGeneratePawnCaptures(position))
+		print(moves)
+	else:
+		moves.extend(bGeneratePawnPushMoves(position))
+		moves.extend(bGenerateDoublePawnPushMoves(position))
+		moves.extend(bGeneratePawnCaptures(position))
+	print(len(moves))
+	moves.extend(generateBishopMoves(position))
+	moves.extend(generateKnightMoves(position))
+	moves.extend(generateRookMoves(position))
+	moves.extend(generateQueenMoves(position))
+	moves.extend(generateKingMoves(position))
+	
+	return moves
 
 def wGenerateAllPawnMoves(position: Position):
 	pass
 
-def wGeneratePawnPushMoves(board: CBoard) -> list:
+def wGeneratePawnPushMoves(position: Position) -> list:
+	board = position.board
 	occupied: np.uint64() = WHITE_BOARD(board) | BLACK_BOARD(board)
 	toBoard: np.uint64() = northOne(board.whitePawns) & ~occupied
 
@@ -73,7 +92,8 @@ def wGeneratePawnPushMoves(board: CBoard) -> list:
 
 	return moves
 
-def bGeneratePawnPushMoves(board: CBoard) -> list:
+def bGeneratePawnPushMoves(position: Position) -> list:
+	board = position.board
 	occupied: np.uint64() = WHITE_BOARD(board) | BLACK_BOARD(board)
 	toBoard: np.uint64() = southOne(board.blackPawns) & ~occupied
 
@@ -92,7 +112,8 @@ def bGeneratePawnPushMoves(board: CBoard) -> list:
 
 	return moves
 
-def wGenerateDoublePawnPushMoves(board: CBoard) -> list:
+def wGenerateDoublePawnPushMoves(position: Position) -> list:
+	board = position.board
 	occupied = WHITE_BOARD(board) | BLACK_BOARD(board)
 	toBoard = northOne(northOne(SECOND_RANK & board.whitePawns) & ~occupied) & ~occupied
 	eligiblePawns = southOne(southOne(toBoard))
@@ -129,7 +150,9 @@ def bGenerateDoublePawnPushMoves(board: CBoard) -> list:
 
 	return moves
 
-def wGeneratePawnCaptures(board: CBoard) -> list:
+def wGeneratePawnCaptures(position: Position) -> list:
+	board = position.board
+	
 	# Eigth-rank pawn captures are handles in wGeneratePromotionAndCaptureMoves
 	singlePawns = singularize(board.whitePawns & ~SEVENTH_RANK)
 
@@ -147,7 +170,9 @@ def wGeneratePawnCaptures(board: CBoard) -> list:
 
 	return moves
 
-def bGeneratePawnCaptures(board: CBoard) -> list:
+def bGeneratePawnCaptures(position: Position) -> list:
+	board = position.board()
+
 	# First-rank pawn captures are handled in bGeneratePromotionAndCaptureMoves
 	singlePawns = singularize(board.blackPawns & ~SECOND_RANK)
 	for i in range(len(singlePawns)):
@@ -182,15 +207,15 @@ def knightMoves(board: np.uint64()) -> list:
 		
 	return moves
 
-def generateKnightMoves(board, color_to_move: Color) -> list:
-	if not board.whiteKnights and color_to_move == Color.BLACK:
+def generateKnightMoves(position: Position) -> list:
+	if not position.board.whiteKnights and position.sideToMove == Color.BLACK:
 		return []
 
-	if not board.blackKnights and color_to_move == Color.BLACK:
+	if not position.board.blackKnights and position.sideToMove == Color.BLACK:
 		return []
 
 	# Make copy to avoid modifying the actual board.
-	knights = board.whiteKnights if color_to_move == Color.WHITE else board.blackKnights
+	knights = position.board.whiteKnights if position.sideToMove == Color.WHITE else position.board.blackKnights
 
 	pseudolegalMoves = []
 	while knights:
@@ -200,17 +225,17 @@ def generateKnightMoves(board, color_to_move: Color) -> list:
 		for move in possibleMoves:
 			destination: Square = move.destination
 			bb: np.uint64() = np.uint64(0x01) << np.uint64(destination.value)
-			if bb & WHITE_BOARD(board) and color_to_move == Color.WHITE:
+			if bb & WHITE_BOARD(position.board) and position.sideToMove == Color.WHITE:
 				# Intersects own pieces, ignore move.
 				continue
-			elif bb & WHITE_BOARD(board) and color_to_move == Color.BLACK:
+			elif bb & WHITE_BOARD(position.board) and position.sideToMove == Color.BLACK:
 				# Capture
 				move.flag=0x04
 				pseudolegalMoves.append(move)
-			elif bb & BLACK_BOARD(board) and color_to_move == Color.BLACK:
+			elif bb & BLACK_BOARD(position.board) and position.sideToMove == Color.BLACK:
 				# Intersects own pieces, ignore move.
 				continue
-			elif bb & BLACK_BOARD(board) and color_to_move == Color.WHITE:
+			elif bb & BLACK_BOARD(position.board) and position.sideToMove == Color.WHITE:
 				move.flag=0x04
 				pseudolegalMoves.append(move)
 			else:
@@ -271,6 +296,134 @@ def generateKingMoves(position: Position):
 			pseudolegalMoves.append(Move(origin=sqOrigin, destination=Square.C8, flag=0x03))
 
 	return pseudolegalMoves
+
+def rookAttacks(sq: Square, blockers: np.uint64()):
+	north_attacks = RAYS[Dir.NORTH][sq.value]
+	if north_attacks & blockers:
+		blockerIdx = BSF(north_attacks & blockers)
+		north_attacks &= ~RAYS[Dir.NORTH][blockerIdx]
+
+	east_attacks = RAYS[Dir.EAST][sq]
+	if east_attacks & blockers:
+		blockerIdx = BSF(east_attacks & blockers)
+		east_attacks &= ~RAYS[Dir.EAST][blockerIdx]
+
+	south_attacks = RAYS[Dir.SOUTH][sq.value]
+	if south_attacks & blockers:
+		blockerIdx = BSR(south_attacks & blockers)
+		south_attacks &= ~RAYS[Dir.SOUTH][blockerIdx]
+
+	west_attacks = RAYS[Dir.WEST][sq]
+	if west_attacks & blockers:
+		blockerIdx = BSR(west_attacks & blockers)
+		west_attacks &= ~RAYS[Dir.WEST][blockerIdx]
+
+	return north_attacks | east_attacks | south_attacks | west_attacks
+
+def generateRookMoves(position: Position):
+	if position.sideToMove == Color.WHITE:
+		rooks = position.board.whiteRooks
+	else:
+		rooks = position.board.blackRooks
+
+	moves = []
+	while rooks:
+		sqOrigin = Square(BSF(rooks))
+		rooks ^= sqOrigin.bitboard()
+
+		blockers = (WHITE_BOARD(position.board) | BLACK_BOARD(position.board)) ^ sqOrigin.bitboard()
+		bbDestinations = rookAttacks(sqOrigin, blockers)
+		while bbDestinations:
+			sqDestination = Square(BSF(bbDestinations))
+			
+			bbDestinations ^= sqDestination.bitboard()
+
+			if sqDestination.isEmpty(position.board):
+				moves.append(Move(sqOrigin, sqDestination))
+			elif sqDestination.bitboard() & WHITE_BOARD(position.board):
+				if position.sideToMove == Color.BLACK:
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+			else:
+				if position.sideToMove == Color.WHITE:
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+
+	return moves
+
+def bishopAttacks(sq: Square, blockers: np.uint64()):
+	nw_attacks = RAYS[Dir.NORTH_WEST][sq]
+	if RAYS[Dir.NORTH_WEST][sq] & blockers:
+		blockerIdx = BSF(RAYS[Dir.NORTH_WEST][sq] & blockers)
+		nw_attacks &= ~RAYS[Dir.NORTH_WEST][blockerIdx]
+
+	ne_attacks = RAYS[Dir.NORTH_EAST][sq]
+	if RAYS[Dir.NORTH_EAST][sq] & blockers:
+		blockerIdx = BSF(RAYS[Dir.NORTH_EAST][sq] & blockers)
+		ne_attacks &= ~RAYS[Dir.NORTH_EAST][blockerIdx]
+
+	se_attacks = RAYS[Dir.SOUTH_EAST][sq]
+	if se_attacks & blockers:
+		blockerIdx = BSR(se_attacks & blockers)
+		se_attacks &= ~RAYS[Dir.SOUTH_EAST][blockerIdx]
+
+	sw_attacks = RAYS[Dir.SOUTH_WEST][sq]
+	if RAYS[Dir.SOUTH_WEST][sq] & blockers:
+		blockerIdx = BSR(RAYS[Dir.SOUTH_WEST][sq] & blockers)
+		sw_attacks &= ~RAYS[Dir.SOUTH_WEST][blockerIdx]
+	return nw_attacks | ne_attacks | se_attacks | sw_attacks
+
+def generateBishopMoves(position: Position):
+	if position.sideToMove == Color.WHITE:
+		bishops = position.board.whiteBishops
+	else:
+		bishops = position.board.blackBishops
+
+	moves = []
+	while bishops:
+		sqOrigin = Square(BSF(bishops))
+		bishops ^= sqOrigin.bitboard()
+
+		blockers = (WHITE_BOARD(position.board) | BLACK_BOARD(position.board)) ^ sqOrigin.bitboard()
+		bbDestinations = bishopAttacks(sqOrigin, blockers)
+
+		while bbDestinations:
+			sqDestination = Square(BSF(bbDestinations))
+			
+			bbDestinations ^= sqDestination.bitboard()
+			if sqDestination.isEmpty(position.board):
+				moves.append(Move(sqOrigin, sqDestination))
+			elif sqDestination.bitboard() & WHITE_BOARD(position.board):
+				if position.sideToMove == Color.BLACK:
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+			else:
+				if position.sideToMove == Color.WHITE:
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+	return moves
+		
+def generateQueenMoves(position):
+	if position.sideToMove == Color.WHITE:
+		queens = position.board.whiteQueens
+	else:
+		queens = position.board.blackQueens
+
+	moves = []
+	while queens:
+		sqOrigin = Square(BSF(queens))
+		queens ^= sqOrigin.bitboard()
+		blockers = (WHITE_BOARD(position.board) | BLACK_BOARD(position.board)) ^ sqOrigin.bitboard()
+		bbDestinations = bishopAttacks(sqOrigin, blockers) | rookAttacks(sqOrigin, blockers)
+		while bbDestinations:
+			sqDestination = Square(BSF(bbDestinations))
+			
+			bbDestinations ^= sqDestination.bitboard()
+			if sqDestination.isEmpty(position.board):
+				moves.append(Move(sqOrigin, sqDestination))
+			elif sqDestination.bitboard() & WHITE_BOARD(position.board):
+				if position.sideToMove == Color.BLACK:
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+			else:
+				if position.sideToMove == Color.WHITE:
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+	return moves
 
 # Given any bitboard, return a list of bitboards with only one piece per board.
 def singularize(b: np.uint64()) -> list:
