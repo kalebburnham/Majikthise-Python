@@ -31,7 +31,7 @@ class BitboardTests(unittest.TestCase):
 
 	def test_bsf_17179869219(self):
 		b = np.uint64(17179869219)
-		self.assertEqual(BSF(b), 4)
+		self.assertEqual(BSF(b), 0)
 
 	def test_bsr_0b00(self):
 		self.assertRaises(AssertionError, BSR, np.uint64(0b00))
@@ -50,6 +50,25 @@ class BitboardTests(unittest.TestCase):
 	def test_generateBoard(self):
 		b = CBoard()
 		self.assertEqual(b.whitePawns, SECOND_RANK)
+
+class FenTests(unittest.TestCase):
+
+	def test_StartingPosition(self):
+		position = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+		fen = Fen(position)
+		self.assertEqual(fen.whitePawns(), SECOND_RANK)
+		self.assertEqual(fen.blackPawns(), SEVENTH_RANK)
+		self.assertEqual(fen.whiteKnights(), Square.B1.bitboard() | Square.G1.bitboard())
+		self.assertEqual(fen.blackKnights(), Square.B8.bitboard() | Square.G8.bitboard())
+		self.assertEqual(fen.whiteBishops(), Square.C1.bitboard() | Square.F1.bitboard())
+		self.assertEqual(fen.blackBishops(), Square.C8.bitboard() | Square.F8.bitboard())
+		self.assertEqual(fen.whiteRooks(), Square.A1.bitboard() | Square.H1.bitboard())
+		self.assertEqual(fen.blackRooks(), Square.A8.bitboard() | Square.H8.bitboard())
+		self.assertEqual(fen.whiteQueens(), Square.D1.bitboard())
+		self.assertEqual(fen.blackQueens(), Square.D8.bitboard())
+		self.assertEqual(fen.whiteKing(), Square.E1.bitboard())
+		self.assertEqual(fen.blackKing(), Square.E8.bitboard())
+
 
 if __name__ == '__main__':
 	unittest.main()

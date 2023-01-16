@@ -105,69 +105,94 @@ class Dir(IntEnum):
 	SOUTH_EAST = 6
 	SOUTH_WEST = 7
 
+class Fen:
+	def __init__(self, fen: str):
+		if fen is None:
+			self.fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+		else:
+			self.fen = fen
+		#self.occupied = _occupied()
+
+	def findPiece(self, pieceType):
+		bb = np.uint64(0)
+		squareIdx = 0
+		idx = 0
+		while squareIdx < 64:
+			char = self.fen[idx]
+			if char == '/':
+				idx += 1
+				continue
+			elif char == pieceType:
+				bb |= Square(squareIdx).bitboard()
+				idx += 1
+				squareIdx += 1
+			elif char.isnumeric():
+				idx += 1
+				squareIdx += np.uint64(int(char))
+			else:
+				idx += 1
+				squareIdx += 1
+
+		return bb
+
+	def whitePawns(self) -> np.uint64():
+		return self.findPiece('p')
+
+	def blackPawns(self) -> np.uint64():
+		return self.findPiece('P')
+
+	def whiteKnights(self) -> np.uint64():
+		return self.findPiece('n')
+
+	def blackKnights(self) -> np.uint64():
+		return self.findPiece('N')
+
+	def whiteBishops(self) -> np.uint64():
+		return self.findPiece('b')
+
+	def blackBishops(self) -> np.uint64():
+		return self.findPiece('B')
+
+	def whiteRooks(self) -> np.uint64():
+		return self.findPiece('r')
+
+	def blackRooks(self) -> np.uint64():
+		return self.findPiece('R')
+
+	def whiteQueens(self) -> np.uint64():
+		return self.findPiece('q')
+
+	def blackQueens(self) -> np.uint64():
+		return self.findPiece('Q')
+
+	def whiteKing(self) -> np.uint64():
+		return self.findPiece('k')
+
+	def blackKing(self) -> np.uint64():
+		return self.findPiece('K')
+
 class CBoard:
-	def __init__(self):
-		self.whitePawns: np.uint64() = np.uint64(0)
-		self.whiteKnights: np.uint64() = np.uint64(0)
-		self.whiteBishops: np.uint64() = np.uint64(0)
-		self.whiteRooks: np.uint64() = np.uint64(0)
-		self.whiteQueens: np.uint64() = np.uint64(0)
-		self.whiteKing: np.uint64() = np.uint64(0)
+	def __init__(self, fen: str = None):
+		self.fen = Fen(fen)
 
-		self.blackPawns: np.uint64() = np.uint64(0)
-		self.blackKnights: np.uint64() = np.uint64(0)
-		self.blackBishops: np.uint64() = np.uint64(0)
-		self.blackRooks: np.uint64() = np.uint64(0)
-		self.blackQueens: np.uint64() = np.uint64(0)
-		self.blackKing: np.uint64() = np.uint64(0)
+		self.whitePawns = self.fen.whitePawns()
+		self.whiteBishops = self.fen.whiteBishops()
+		self.whiteKnights = self.fen.whiteKnights()
+		self.whiteRooks = self.fen.whiteRooks()
+		self.whiteQueens = self.fen.whiteQueens()
+		self.whiteKing = self.fen.whiteKing()
 
-		self.setPawns()
-		self.setKnights()
-		self.setBishops()
-		self.setRooks()
-		self.setQueens()
-		self.setKings()
-
-	def setPawns(self, white=True, black=True):
-		if white:
-			self.whitePawns = SECOND_RANK
-		if black:
-			self.blackPawns = SEVENTH_RANK
-
-	def setKnights(self, white=True, black=True):
-		if white:
-			self.whiteKnights = np.uint64(0x42)
-		if black:
-			self.blackKnights = np.uint64(0x42 << 56)
-
-	def setBishops(self, white=True, black=True):
-		if white:
-			self.whiteBishops = np.uint64(0x24)
-		if black:
-			self.blackBishops = np.uint64(0x24 << 56)
-
-	def setRooks(self, white=True, black=True):
-		if white:
-			self.whiteRooks = np.uint64(0x81)
-		if black:
-			self.blackRooks = np.uint64(0x81 << 56)
-
-	def setQueens(self, white=True, black=True):
-		if white:
-			self.whiteQueens = np.uint64(0x08)
-		if black:
-			self.blackQueens = np.uint64(0x08 << 56)
-
-	def setKings(self, white=True, black=True):
-		if white:
-			self.whiteKing = np.uint64(0x10)
-		if black:
-			self.blackKing = np.uint64(0x10 << 56)
+		self.blackPawns = self.fen.blackPawns()
+		self.blackBishops = self.fen.blackBishops()
+		self.blackKnights = self.fen.blackKnights()
+		self.blackRooks = self.fen.blackRooks()
+		self.blackQueens = self.fen.blackQueens()
+		self.blackKing = self.fen.blackKing()
 
 class Position:
-	def __init__(self):
+	def __init__(self, fen=None):
 		self.parent: 'Position' = None
-		self.board: CBoard = CBoard()
+		self.board: CBoard = CBoard(fen)
 		self.wAttacks: CBoard = None
 		self.bAttacks: CBoard = None
 
@@ -220,25 +245,4 @@ class Move:
 		return
 
 
-	@staticmethod
-	def getFlag(move, position: Position):
-		# https://www.chessprogramming.org/Encoding_Moves
-		# Double pawn push
-		origin = _squareToInt(move[:2])
-		destination = _squareToInt(move[2:])
-		if Square.B1 <= origin <= Square.B8 \
-			and Square.D1 <= destination <= Square.D8 \
-			and position.board.whitePawns ^ np.uint64():
-				return
 		
-	@staticmethod
-	def _squareToInt(square):
-		'''
-		Convert a string square to an integer corresponding to the Square enum.
-		For example, a1 = 0, a5=40, c2=10
-		This function should be tested.
-		'''
-		square = square.lower()
-		if not re.search(square, '[abcdefgh][12345678'):
-			raise ValueError("Square not valid: {square}")
-		return (square[1]-1)*8 + (ord(square[0])-97)
