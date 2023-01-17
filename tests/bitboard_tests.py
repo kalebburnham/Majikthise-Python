@@ -5,6 +5,7 @@ import unittest
 
 from bitboard import *
 from board import *
+from printer import *
 
 class BitboardTests(unittest.TestCase):
 
@@ -68,6 +69,26 @@ class FenTests(unittest.TestCase):
 		self.assertEqual(fen.blackQueens(), Square.D8.bitboard())
 		self.assertEqual(fen.whiteKing(), Square.E1.bitboard())
 		self.assertEqual(fen.blackKing(), Square.E8.bitboard())
+
+class CBoardTests(unittest.TestCase):
+	def test_DoubledPawns_StartingPosition(self):
+		position = Position()
+		self.assertEqual(position.board.doubledPawnCount(Color.WHITE), 0)
+		self.assertEqual(position.board.doubledPawnCount(Color.BLACK), 0)
+
+	def test_DoubledPawns_e3e2(self):
+		position = Position()
+		position.board.whitePawns ^= Square.D2.bitboard()
+		position.board.whitePawns |= Square.E3.bitboard()
+		self.assertEqual(position.board.doubledPawnCount(Color.WHITE), 2)
+
+	def test_DoubledPawns_Tripled(self):
+		position = Position('8/p7/p7/p7/8/8/8/8')
+		self.assertEqual(position.board.doubledPawnCount(Color.WHITE), 3)
+
+	def test_DoubledPawns_AllOnSameFile(self):
+		position = Position('8/2p5/2p5/2p5/2p5/2p5/2p5/2p5')
+		self.assertEqual(position.board.doubledPawnCount(Color.WHITE), 7)
 
 
 if __name__ == '__main__':

@@ -189,6 +189,18 @@ class CBoard:
 		self.blackQueens = self.fen.blackQueens()
 		self.blackKing = self.fen.blackKing()
 
+	def doubledPawnCount(self, sideToMove: Color) -> int:
+		pawnBoard = self.whitePawns if sideToMove == Color.WHITE else self.blackPawns
+		file = A_FILE
+		count = 0
+		for _ in range(7):
+			pawns_on_this_file = POPCOUNT(file & pawnBoard)
+			if pawns_on_this_file > 1:
+				count += pawns_on_this_file
+			file <<= np.uint64(1)
+
+		return count
+
 class Position:
 	def __init__(self, fen=None):
 		self.parent: 'Position' = None
