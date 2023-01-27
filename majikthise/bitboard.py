@@ -36,6 +36,12 @@ def eastOne(b: np.uint64()) -> np.uint64():
 def westOne(b: np.uint64()) -> np.uint64():
 	return (b >> np.uint64(1)) & ~H_FILE
 
+def northOne(b: np.uint64()) -> np.uint64():
+	return b << np.uint64(8)
+
+def southOne(b: np.uint64()) -> np.uint64():
+	return b >> np.uint64(8)
+
 # These are called Kogge-Stone algorithms.
 # They also exist for lateral and diagonal fills.
 def northFill(b) -> np.uint64():

@@ -211,6 +211,14 @@ class CBoard:
 	def isolatedPawnCount(self, sideToMove: Color) -> int:
 		return POPCOUNT(self.isolanis(sideToMove))
 		
+	def blockedPawnCount(self, sideToMove: Color) -> int:
+		blockers = WHITE_BOARD(self) | BLACK_BOARD(self)
+
+		if sideToMove == Color.WHITE:
+			return POPCOUNT(northOne(self.whitePawns) & blockers)
+		else:
+			return POPCOUNT(southOne(self.blackPawns) & blockers)
+
 class Position:
 	def __init__(self, fen=None):
 		self.parent: 'Position' = None

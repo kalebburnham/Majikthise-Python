@@ -57,29 +57,6 @@ class BitboardTests(unittest.TestCase):
 		exp = Square.E5.bitboard() | Square.E6.bitboard() | Square.E7.bitboard() | Square.E8.bitboard()
 		self.assertEqual(b, exp)
 
-	def test_isolanis_white1(self):
-		b = CBoard()
-		b.whitePawns = Square.E5.bitboard()
-		self.assertEqual(b.isolatedPawnCount(Color.WHITE), 1)
-		self.assertEqual(b.isolanis(0), b.whitePawns)
-
-	def test_isolanis_black2(self):
-		b = CBoard()
-		b.blackPawns = Square.E5.bitboard() | Square.H5.bitboard()
-		self.assertEqual(b.isolatedPawnCount(Color.BLACK), 2)
-		self.assertEqual(b.isolanis(1), b.blackPawns)
-
-	def test_isolanis_startingPosition(self):
-		b = CBoard()
-		self.assertEqual(b.isolatedPawnCount(0), 0)
-		self.assertEqual(b.isolatedPawnCount(Color.BLACK), 0)
-		
-	def test_isolanis_fourIsolanis(self):
-		b = CBoard()
-		b.blackPawns = Square.A7.bitboard() | Square.C7.bitboard() | \
-						Square.E7.bitboard() | Square.H7.bitboard()
-		self.assertEqual(b.isolatedPawnCount(1), 4)
-
 	def test_fileFill_H5(self):
 		self.assertEqual(fileFill(eastOne(Square.H5.bitboard())), np.uint64(0))
 
@@ -121,6 +98,50 @@ class CBoardTests(unittest.TestCase):
 		position = Position('8/2p5/2p5/2p5/2p5/2p5/2p5/2p5')
 		self.assertEqual(position.board.doubledPawnCount(Color.WHITE), 7)
 
+	def test_isolanis_white1(self):
+		b = CBoard()
+		b.whitePawns = Square.E5.bitboard()
+		self.assertEqual(b.isolatedPawnCount(Color.WHITE), 1)
+		self.assertEqual(b.isolanis(0), b.whitePawns)
+
+	def test_isolanis_black2(self):
+		b = CBoard()
+		b.blackPawns = Square.E5.bitboard() | Square.H5.bitboard()
+		self.assertEqual(b.isolatedPawnCount(Color.BLACK), 2)
+		self.assertEqual(b.isolanis(1), b.blackPawns)
+
+	def test_isolanis_startingPosition(self):
+		b = CBoard()
+		self.assertEqual(b.isolatedPawnCount(0), 0)
+		self.assertEqual(b.isolatedPawnCount(Color.BLACK), 0)
+		
+	def test_isolanis_fourIsolanis(self):
+		b = CBoard()
+		b.blackPawns = Square.A7.bitboard() | Square.C7.bitboard() | \
+						Square.E7.bitboard() | Square.H7.bitboard()
+		self.assertEqual(b.isolatedPawnCount(1), 4)
+
+	def test_blockedPawns_e4e5(self):
+		b = CBoard()
+		b.whitePawns = Square.E4.bitboard() | Square.E5.bitboard()
+		self.assertEqual(b.blockedPawnCount(0), 1)
+
+	def test_blockedPawns_StartingPosition(self):
+		b = CBoard()
+		self.assertEqual(b.blockedPawnCount(0), 0)
+		self.assertEqual(b.blockedPawnCount(1), 0)
+
+	def test_blockedPawns_a6a7(self):
+		b = CBoard()
+		b.blackPawns = Square.A6.bitboard() | Square.A7.bitboard()
+		self.assertEqual(b.blockedPawnCount(1), 1)
+
+	def test_blockedPawns_AFile(self):
+		b = CBoard()
+		b.whitePawns = A_FILE & ~Square.A8.bitboard()
+		b.blackRooks = np.uint64(0)
+		b.blackPawns = np.uint64(0)
+		self.assertEqual(b.blockedPawnCount(0), 6)
 
 if __name__ == '__main__':
 	unittest.main()
