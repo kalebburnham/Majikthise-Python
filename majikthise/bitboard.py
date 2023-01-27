@@ -30,7 +30,28 @@ def WHITE_BOARD(b) -> np.uint64():
 def BLACK_BOARD(b) -> np.uint64():
 	return (b.blackPawns | b.blackKnights | b.blackBishops | b.blackRooks | b.blackQueens | b.blackKing)
 
+def eastOne(b: np.uint64()) -> np.uint64():
+	return (b << np.uint64(1)) & ~A_FILE
 
+def westOne(b: np.uint64()) -> np.uint64():
+	return (b >> np.uint64(1)) & ~H_FILE
+
+# These are called Kogge-Stone algorithms.
+# They also exist for lateral and diagonal fills.
+def northFill(b) -> np.uint64():
+	b |= (b << np.uint64(8))
+	b |= (b << np.uint64(16))
+	b |= (b << np.uint64(32))
+	return b
+
+def southFill(b) -> np.uint64():
+	b |= (b >> np.uint64(8))
+	b |= (b >> np.uint64(16))
+	b |= (b >> np.uint64(32))
+	return b
+
+def fileFill(b) -> np.uint64():
+	return northFill(b) | southFill(b)
 
 bsf_index = [0,  1, 48,  2, 57, 49, 28,  3,
    61, 58, 50, 42, 38, 29, 17,  4,

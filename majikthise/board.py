@@ -201,6 +201,16 @@ class CBoard:
 
 		return count
 
+	def isolanis(self, sideToMove: Color) -> np.uint64():
+		#https://www.chessprogramming.org/Isolated_Pawns_(Bitboards)
+		pawnBoard = self.whitePawns if sideToMove == Color.WHITE else self.blackPawns
+		fill = pawnBoard & ~fileFill(eastOne(pawnBoard))
+		fill &= pawnBoard & ~fileFill(westOne(pawnBoard))
+		return fill
+
+	def isolatedPawnCount(self, sideToMove: Color) -> int:
+		return POPCOUNT(self.isolanis(sideToMove))
+		
 class Position:
 	def __init__(self, fen=None):
 		self.parent: 'Position' = None
