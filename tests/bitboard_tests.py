@@ -47,10 +47,41 @@ class BitboardTests(unittest.TestCase):
 		b = np.uint64(0b1000000000000000000000000000000000000000000000000000000000000000)
 		self.assertEqual(BSR(b), 63)
 
-
 	def test_generateBoard(self):
 		b = CBoard()
 		self.assertEqual(b.whitePawns, SECOND_RANK)
+
+	def test_northFill(self):
+		b = Square.E5.bitboard()
+		b = northFill(b)
+		exp = Square.E5.bitboard() | Square.E6.bitboard() | Square.E7.bitboard() | Square.E8.bitboard()
+		self.assertEqual(b, exp)
+
+	def test_isolanis_white1(self):
+		b = CBoard()
+		b.whitePawns = Square.E5.bitboard()
+		self.assertEqual(b.isolatedPawnCount(Color.WHITE), 1)
+		self.assertEqual(b.isolanis(0), b.whitePawns)
+
+	def test_isolanis_black2(self):
+		b = CBoard()
+		b.blackPawns = Square.E5.bitboard() | Square.H5.bitboard()
+		self.assertEqual(b.isolatedPawnCount(Color.BLACK), 2)
+		self.assertEqual(b.isolanis(1), b.blackPawns)
+
+	def test_isolanis_startingPosition(self):
+		b = CBoard()
+		self.assertEqual(b.isolatedPawnCount(0), 0)
+		self.assertEqual(b.isolatedPawnCount(Color.BLACK), 0)
+		
+	def test_isolanis_fourIsolanis(self):
+		b = CBoard()
+		b.blackPawns = Square.A7.bitboard() | Square.C7.bitboard() | \
+						Square.E7.bitboard() | Square.H7.bitboard()
+		self.assertEqual(b.isolatedPawnCount(1), 4)
+
+	def test_fileFill_H5(self):
+		self.assertEqual(fileFill(eastOne(Square.H5.bitboard())), np.uint64(0))
 
 class FenTests(unittest.TestCase):
 
