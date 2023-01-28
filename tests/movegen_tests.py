@@ -131,14 +131,14 @@ class PawnMoveTests(unittest.TestCase):
 		position = Position()
 		position.board.whitePawns = SECOND_RANK
 		moves = wGenerateDoublePawnPushMoves(position)
-		expectedMoves = [Move(Square.A2, Square.A4),
-						Move(Square.B2, Square.B4),
-						Move(Square.C2, Square.C4),
-						Move(Square.D2, Square.D4),
-						Move(Square.E2, Square.E4),
-						Move(Square.F2, Square.F4),
-						Move(Square.G2, Square.G4),
-						Move(Square.H2, Square.H4)]
+		expectedMoves = [Move(Square.A2, Square.A4, 0x01),
+						Move(Square.B2, Square.B4, 0x01),
+						Move(Square.C2, Square.C4, 0x01),
+						Move(Square.D2, Square.D4, 0x01),
+						Move(Square.E2, Square.E4, 0x01),
+						Move(Square.F2, Square.F4, 0x01),
+						Move(Square.G2, Square.G4, 0x01),
+						Move(Square.H2, Square.H4, 0x01)]
 		self.assertCountEqual(moves, expectedMoves)
 
 class KnightMoveTests(unittest.TestCase):
@@ -539,14 +539,14 @@ class BishopMoveTests(unittest.TestCase):
 			Move(Square.F2, Square.F3),
 			Move(Square.G2, Square.G3),
 			Move(Square.H2, Square.H3),
-			Move(Square.A2, Square.A4),
-			Move(Square.B2, Square.B4),
-			Move(Square.C2, Square.C4),
-			Move(Square.D2, Square.D4),
-			Move(Square.E2, Square.E4),
-			Move(Square.F2, Square.F4),
-			Move(Square.G2, Square.G4),
-			Move(Square.H2, Square.H4),
+			Move(Square.A2, Square.A4, 0x01),
+			Move(Square.B2, Square.B4, 0x01),
+			Move(Square.C2, Square.C4, 0x01),
+			Move(Square.D2, Square.D4, 0x01),
+			Move(Square.E2, Square.E4, 0x01),
+			Move(Square.F2, Square.F4, 0x01),
+			Move(Square.G2, Square.G4, 0x01),
+			Move(Square.H2, Square.H4, 0x01),
 			Move(Square.B1, Square.A3),
 			Move(Square.B1, Square.C3),
 			Move(Square.G1, Square.F3),

@@ -47,6 +47,7 @@ def southOne(b: np.uint64()) -> np.uint64():
 	return b >> np.uint64(8)
 
 
+
 def generateAllMoves(position: Position):
 	moves = []
 	# Missing
@@ -55,12 +56,10 @@ def generateAllMoves(position: Position):
 		moves.extend(wGeneratePawnPushMoves(position))
 		moves.extend(wGenerateDoublePawnPushMoves(position))
 		moves.extend(wGeneratePawnCaptures(position))
-		print(moves)
 	else:
 		moves.extend(bGeneratePawnPushMoves(position))
 		moves.extend(bGenerateDoublePawnPushMoves(position))
 		moves.extend(bGeneratePawnCaptures(position))
-	print(len(moves))
 	moves.extend(generateBishopMoves(position))
 	moves.extend(generateKnightMoves(position))
 	moves.extend(generateRookMoves(position))
@@ -129,7 +128,7 @@ def wGenerateDoublePawnPushMoves(position: Position) -> list:
 		destination =  np.uint64(BSF(toBoard))
 		toBoard ^= np.uint64(0x01) << destination
 
-		moves.append(Move(origin=Square(origin), destination=Square(destination)))
+		moves.append(Move(origin=Square(origin), destination=Square(destination), flag=0x01))
 
 	return moves
 
@@ -146,7 +145,7 @@ def bGenerateDoublePawnPushMoves(board: CBoard) -> list:
 		destination =  np.uint64(BSF(toBoard))
 		toBoard ^= np.uint64(0x01) << destination
 
-		moves.append(Move(origin=Square(origin), destination=Square(destination)))
+		moves.append(Move(origin=Square(origin), destination=Square(destination), flag=0x01))
 
 	return moves
 
