@@ -238,8 +238,24 @@ class Position:
 		self.epTargetSquare: Square = Square.NONE
 
 
-	def applyMove(self, move: 'Move'):
+	def makeMove(self, move: 'Move'):
 		return
+
+	def score(self):
+		# Use NegaMax
+		# Todo: Add mobility count
+		# https://www.chessprogramming.org/Evaluation
+		_score = 9 * (POPCOUNT(self.board.whiteQueens) - POPCOUNT(self.board.blackQueens)) \
+			+ 5 * (POPCOUNT(self.board.whiteRooks) - POPCOUNT(self.board.blackRooks)) \
+			+ 3 * (POPCOUNT(self.board.whiteKnights) - POPCOUNT(self.board.blackKnights)) \
+			+ 3 * (POPCOUNT(self.board.whiteBishops) - POPCOUNT(self.board.blackBishops)) \
+			+ (POPCOUNT(self.board.whitePawns) - POPCOUNT(self.board.blackPawns))
+
+		_score -= 0.5 * (self.board.doubledPawnCount(Color.WHITE) - self.board.doubledPawnCount(Color.BLACK))
+		_score -= 0.5 * (self.board.isolatedPawnCount(Color.WHITE) - self.board.isolatedPawnCount(Color.BLACK))
+		_score -= 0.5 * (self.board.blockedPawnCount(Color.WHITE) - self.board.blockedPawnCount(Color.BLACK))
+
+		return _score if self.sideToMove == Color.WHITE else -1 * _score
 
 class Move:
 	def __init__(self, origin: Square=Square.NONE, destination: Square=Square.NONE, flag=0):
