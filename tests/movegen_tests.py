@@ -557,8 +557,20 @@ class BishopMoveTests(unittest.TestCase):
 	def testbAllMoves_StartingPosition(self):
 		pass
 
-	# Test a bunch of random game positions.
+	# Todo: Test a bunch of random game positions.
 
+class MakeMoveTests(unittest.TestCase):
+
+	def test_makeMove_e2e4(self):
+		position = Position()
+		move = Move(Square.E2, Square.E4)
+		position.makeMove(move)
+
+		expected = Position()
+		expected.board.whitePawns = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard()
+		expected.sideToMove = Color.BLACK
+
+		self.assertEqual(position, expected)
 
 if __name__ == '__main__':
 	unittest.main()

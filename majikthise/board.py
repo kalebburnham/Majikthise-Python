@@ -115,12 +115,13 @@ class Fen:
 
 	def findPiece(self, pieceType):
 		bb = np.uint64(0)
-		squareIdx = 0
+		squareIdx = 56
 		idx = 0
-		while squareIdx < 64:
+		while squareIdx >= 0:
 			char = self.fen[idx]
-			if char == '/':
+			if char == '/' or char == ' ':
 				idx += 1
+				squareIdx -= 16
 				continue
 			elif char == pieceType:
 				bb |= Square(squareIdx).bitboard()
@@ -136,40 +137,40 @@ class Fen:
 		return bb
 
 	def whitePawns(self) -> np.uint64():
-		return self.findPiece('p')
-
-	def blackPawns(self) -> np.uint64():
 		return self.findPiece('P')
 
-	def whiteKnights(self) -> np.uint64():
-		return self.findPiece('n')
+	def blackPawns(self) -> np.uint64():
+		return self.findPiece('p')
 
-	def blackKnights(self) -> np.uint64():
+	def whiteKnights(self) -> np.uint64():
 		return self.findPiece('N')
 
-	def whiteBishops(self) -> np.uint64():
-		return self.findPiece('b')
+	def blackKnights(self) -> np.uint64():
+		return self.findPiece('n')
 
-	def blackBishops(self) -> np.uint64():
+	def whiteBishops(self) -> np.uint64():
 		return self.findPiece('B')
 
-	def whiteRooks(self) -> np.uint64():
-		return self.findPiece('r')
+	def blackBishops(self) -> np.uint64():
+		return self.findPiece('b')
 
-	def blackRooks(self) -> np.uint64():
+	def whiteRooks(self) -> np.uint64():
 		return self.findPiece('R')
 
-	def whiteQueens(self) -> np.uint64():
-		return self.findPiece('q')
+	def blackRooks(self) -> np.uint64():
+		return self.findPiece('r')
 
-	def blackQueens(self) -> np.uint64():
+	def whiteQueens(self) -> np.uint64():
 		return self.findPiece('Q')
 
+	def blackQueens(self) -> np.uint64():
+		return self.findPiece('q')
+
 	def whiteKing(self) -> np.uint64():
-		return self.findPiece('k')
+		return self.findPiece('K')
 
 	def blackKing(self) -> np.uint64():
-		return self.findPiece('K')
+		return self.findPiece('k')
 
 class CBoard:
 	def __init__(self, fen: str = None):
@@ -188,6 +189,20 @@ class CBoard:
 		self.blackRooks = self.fen.blackRooks()
 		self.blackQueens = self.fen.blackQueens()
 		self.blackKing = self.fen.blackKing()
+
+	def __eq__(self, other: 'CBoard'):
+		return (self.whitePawns == other.whitePawns
+				and self.whiteBishops == other.whiteBishops
+				and self.whiteKnights == other.whiteKnights
+				and self.whiteRooks == other.whiteRooks
+				and self.whiteQueens == other.whiteQueens
+				and self.whiteKing == other.whiteKing
+				and self.blackPawns == other.blackPawns
+				and self.blackBishops == other.blackBishops
+				and self.blackKnights == other.blackKnights
+				and self.blackRooks == other.blackRooks
+				and self.blackQueens == other.blackQueens
+				and self.blackKing == other.blackKing)
 
 	def doubledPawnCount(self, sideToMove: Color) -> int:
 		pawnBoard = self.whitePawns if sideToMove == Color.WHITE else self.blackPawns
@@ -219,7 +234,92 @@ class CBoard:
 		else:
 			return POPCOUNT(southOne(self.blackPawns) & blockers)
 
+	def makeMove(self, move: 'Move'):
+		if move.flag == '0x04':
+			self.removePiece(move.destination.bitboard())
+		# TODO Handle en passant and promotions
+
+		color, piece = self.removePiece(move.origin.bitboard())
+		self.putPiece(piece, color, move.destination)
+		
+
+	def unmakeMove(self, move: 'Move'):
+		#reversedMove = Move(move.destination, move.origin, move.flag)
+		#self.makeMove(reversedMove)
+		if move.flag == '0x04':
+			raise NotImplementedError("Cannot unmake capture moves yet.")
+
+		color, piece = self.removePiece(move.destination.bitboard())
+		self.putPiece(piece, color, move.origin)
+
+	def removePiece(self, bbSquare):
+		if bbSquare & self.whitePawns:
+			self.whitePawns = self.whitePawns ^ bbSquare
+			return Color.WHITE, Piece.P
+		elif bbSquare & self.whiteBishops:
+			self.whiteBishops = self.whiteBishops ^ bbSquare
+			return Color.WHITE, Piece.B
+		elif bbSquare & self.whiteKnights:
+			self.whiteKnights = self.whiteKnights ^ bbSquare
+			return Color.WHITE, Piece.N
+		elif bbSquare & self.whiteRooks:
+			self.whiteRooks = self.whiteRooks ^ bbSquare
+			return Color.WHITE, Piece.R
+		elif bbSquare & self.whiteQueens:
+			self.whiteQueens = self.whiteQueens ^ bbSquare
+			return Color.WHITE, Piece.Q
+		elif bbSquare & self.whiteKing:
+			self.whiteKing = self.whiteKing ^ bbSquare
+			return Color.WHITE, Piece.K
+		elif bbSquare & self.blackPawns:
+			self.blackPawns = self.blackPawns ^ bbSquare
+			return Color.BLACK, Piece.P
+		elif bbSquare & self.blackBishops:
+			self.blackBishops = self.blackBishops ^ bbSquare
+			return Color.BLACK, Piece.B
+		elif bbSquare & self.blackKnights:
+			self.blackKnights = self.blackKnights ^ bbSquare
+			return Color.BLACK, Piece.N
+		elif bbSquare & self.blackRooks:
+			self.blackRooks = self.blackRooks ^ bbSquare
+			return Color.BLACK, Piece.R
+		elif bbSquare & self.blackQueens:
+			self.blackQueens = self.blackQueens ^ bbSquare
+			return Color.BLACK, Piece.Q
+		elif bbSquare & self.blackKing:
+			self.blackKing = self.blackKing ^ bbSquare
+			return Color.BLACK, Piece.K
+
+		raise Exception("Could not remove piece. square:" + str(bin(self.whitePawns)))
+
+	def putPiece(self, piece: Piece, color: Color, square: Square):
+		if piece == Piece.P and color == Color.WHITE:
+			self.whitePawns = self.whitePawns | square.bitboard()
+		elif piece == Piece.N and color == Color.WHITE:
+			self.whiteKnights = self.whiteKnights | square.bitboard()
+		elif piece == Piece.B and color == Color.WHITE:
+			self.whiteBishops = self.whiteBishops | square.bitboard()
+		elif piece == Piece.R and color == Color.WHITE:
+			self.whiteRooks = self.whiteRooks | square.bitboard()
+		elif piece == Piece.Q and color == Color.WHITE:
+			self.whiteQueens = self.whiteQueens | square.bitboard()
+		elif piece == Piece.K and color == Color.WHITE:
+			self.whiteKing = self.whiteKing | square.bitboard()
+		elif piece == Piece.P and color == Color.BLACK:
+			self.blackPawns = self.blackPawns | square.bitboard()
+		elif piece == Piece.N and color == Color.BLACK:
+			self.blackKnights = self.blackKnights | square.bitboard()
+		elif piece == Piece.B and color == Color.BLACK:
+			self.blackBishops = self.blackBishops | square.bitboard()
+		elif piece == Piece.R and color == Color.BLACK:
+			self.blackRooks = self.blackRooks | square.bitboard()
+		elif piece == Piece.Q and color == Color.BLACK:
+			self.blackQueens = self.blackQueens | square.bitboard()
+		elif piece == Piece.K and color == Color.BLACK:
+			self.blackKing = self.blackKing | square.bitboard()
+
 class Position:
+	# TODO Write Equality Function
 	def __init__(self, fen=None):
 		self.parent: 'Position' = None
 		self.board: CBoard = CBoard(fen)
@@ -237,8 +337,28 @@ class Position:
 
 		self.epTargetSquare: Square = Square.NONE
 
+	def __eq__(self, other):
+		return (self.board == other.board
+				and self.sideToMove == other.sideToMove
+				and self.halfmove_clock == other.halfmove_clock
+				and self.wkCastle == other.wkCastle
+				and self.wqCastle == other.wqCastle
+				and self.bkCastle == other.bkCastle
+				and self.bqCastle == other.bqCastle)
 
 	def makeMove(self, move: 'Move'):
+		# What all needs to be updated?
+		# The board - need to translate squares to pieces on them.
+		# The turn. Should swap after updates are complete.
+		# Halfmove clock?
+		self.board.makeMove(move)
+		self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.WHITE
+		return
+
+	def unmakeMove(self, move: 'Move'):
+		# TODO Captures, en passants, promotions, halfmove clock
+		self.board.unmakeMove(move)
+		self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.WHITE
 		return
 
 	def score(self):

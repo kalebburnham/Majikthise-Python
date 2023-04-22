@@ -2,3 +2,12 @@ build/
 majikthise/__pycache__/
 *.pyc
 majikthise/majikthise.spec
+.DS_Store
+*.pyc
+majikthise/dist/majikthise.app/Contents/Resources/icon-windowed.icns
+majikthise/dist/majikthise.app/Contents/MacOS/majikthise
+majikthise/dist/majikthise.app/Contents/Info.plist
+majikthise/dist/majikthise.app/Contents/_CodeSignature/CodeResources
+majikthise/dist/majikthise
+majikthise/dist/log.txt
+*.pyc
