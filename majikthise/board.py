@@ -11,6 +11,14 @@ class Color(IntEnum):
 	BLACK = 1
 	COLOR_NB = 2
 
+	def __invert__(self):
+		if self.value == 0:
+			return Color.BLACK
+		elif self.value == 1:
+			return Color.WHITE
+		else:
+			raise Exception("Error with the inversion of the Color enum.")
+
 class Piece(IntEnum):
 	P = 0
 	N = 1
@@ -247,10 +255,13 @@ class CBoard:
 	def unmakeMove(self, move: 'Move'):
 		#reversedMove = Move(move.destination, move.origin, move.flag)
 		#self.makeMove(reversedMove)
-		if move.flag == '0x04':
-			raise NotImplementedError("Cannot unmake capture moves yet.")
-
 		color, piece = self.removePiece(move.destination.bitboard())
+		self.putPiece(piece, color, move.origin)
+
+		if move.flag == '0x04':
+			# Puts the captured piece back.
+			self.putPiece(move.capturedPieceType, ~color, move.origin)
+		
 		self.putPiece(piece, color, move.origin)
 
 	def removePiece(self, bbSquare):
@@ -369,13 +380,13 @@ class Position:
 		# The turn. Should swap after updates are complete.
 		# Halfmove clock?
 		self.board.makeMove(move)
-		self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.WHITE
+		self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.BLACK
 		return
 
 	def unmakeMove(self, move: 'Move'):
 		# TODO Captures, en passants, promotions, halfmove clock
 		self.board.unmakeMove(move)
-		self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.WHITE
+		self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.BLACK
 		return
 
 	def score(self):

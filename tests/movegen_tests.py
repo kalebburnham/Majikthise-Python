@@ -582,5 +582,27 @@ class MakeMoveTests(unittest.TestCase):
 
 		self.assertEqual(position, expected)
 
+	def test_makeMove_e4xd5(self):
+		# TODO The starting position should set the en passant target square in the fen (d6).
+		position = Position('rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1')
+		position.makeMove(Move(Square.E4, Square.D5, flag=0x04, capturedPieceType=Piece.P))
+
+		expected = Position('rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1')
+		self.assertEqual(position, expected)
+
+	def test_unmakeMove_e4xd5(self):
+		position = Position('rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1')
+		move = Move(Square.E4, Square.D5, flag=0x04, capturedPieceType=Piece.P)
+		position.makeMove(move)
+		position.unmakeMove(move)
+
+		expected = Position('rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1')
+		self.assertEqual(position, expected)
+
+
+		
+
+	
+
 if __name__ == '__main__':
 	unittest.main()
