@@ -141,6 +141,15 @@ class PawnMoveTests(unittest.TestCase):
 						Move(Square.H2, Square.H4, 0x01)]
 		self.assertCountEqual(moves, expectedMoves)
 
+	def test_wGeneratePawnCaptures_e4d5(self):
+		position = Position('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
+		position.makeMove(Move(origin=Square.E2, destination=Square.E4))
+		position.makeMove(Move(origin=Square.D7, destination=Square.D5))
+		moves = wGeneratePawnCaptures(position)
+		expectedMoves = [Move(Square.E4, Square.D5, 0x04, capturedPieceType=Piece.P)]
+
+		self.assertCountEqual(moves, expectedMoves)
+
 class KnightMoveTests(unittest.TestCase):
 
 	def test_knightAttacks_CenterOfBoard(self):
@@ -211,14 +220,14 @@ class KnightMoveTests(unittest.TestCase):
 			Move(origin=Square.C3, destination=Square.B1),
 			Move(origin=Square.C3, destination=Square.A4),
 			Move(origin=Square.C3, destination=Square.B5),
-			Move(origin=Square.C3, destination=Square.D5, flag=0x04),
-			Move(origin=Square.C3, destination=Square.E4, flag=0x04),
+			Move(origin=Square.C3, destination=Square.D5, flag=0x04, capturedPieceType=Piece.P),
+			Move(origin=Square.C3, destination=Square.E4, flag=0x04, capturedPieceType=Piece.P),
 			Move(origin=Square.G5, destination=Square.H3),
 			Move(origin=Square.G5, destination=Square.F3),
-			Move(origin=Square.G5, destination=Square.E4, flag=0x04),
+			Move(origin=Square.G5, destination=Square.E4, flag=0x04, capturedPieceType=Piece.P),
 			Move(origin=Square.G5, destination=Square.E6),
-			Move(origin=Square.G5, destination=Square.F7, flag=0x04),
-			Move(origin=Square.G5, destination=Square.H7, flag=0x04)
+			Move(origin=Square.G5, destination=Square.F7, flag=0x04, capturedPieceType=Piece.P),
+			Move(origin=Square.G5, destination=Square.H7, flag=0x04, capturedPieceType=Piece.P)
 		]
 
 		self.assertCountEqual(moves, expected)
@@ -259,11 +268,11 @@ class KnightMoveTests(unittest.TestCase):
 			Move(origin=Square.C6, destination=Square.B8),
 			Move(origin=Square.C6, destination=Square.A5),
 			Move(origin=Square.C6, destination=Square.B4),
-			Move(origin=Square.C6, destination=Square.D4, flag=0x04),
+			Move(origin=Square.C6, destination=Square.D4, flag=0x04, capturedPieceType=Piece.P),
 			Move(origin=Square.C6, destination=Square.E5),
 			Move(origin=Square.F6, destination=Square.G8),
 			Move(origin=Square.F6, destination=Square.D5),
-			Move(origin=Square.F6, destination=Square.E4, flag=0x04),
+			Move(origin=Square.F6, destination=Square.E4, flag=0x04, capturedPieceType=Piece.P),
 			Move(origin=Square.F6, destination=Square.G4),
 			Move(origin=Square.F6, destination=Square.H5)
 		]
@@ -382,20 +391,21 @@ class RookMoveTests(unittest.TestCase):
 		self.assertEqual(moves, expected)
 
 	def test_wGenerateRookMoves_ComplexPosition(self):
-		position = Position(fen='3qr1k1/1p1n1ppp/2pb1n2/r2PPb2/B2P4/2N1B3/P1P3PP/R2QK1NR w kq - 0 12')
+		
+		position = Position(fen='r2qk1nr/p1p3pp/2n1b3/b2p4/R2ppB2/2PB1N2/1P1N1PPP/3QR1K1 w kq - 0 12')
 		moves = generateRookMoves(position)
 		expected = [
 			Move(Square.A4, Square.A1),
 			Move(Square.A4, Square.A2),
 			Move(Square.A4, Square.A3),
-			Move(Square.A4, Square.A5, 0x04),
+			Move(Square.A4, Square.A5, 0x04, capturedPieceType=Piece.B),
 			Move(Square.A4, Square.B4),
 			Move(Square.A4, Square.C4),
-			Move(Square.A4, Square.D4, 0x04),
+			Move(Square.A4, Square.D4, 0x04, capturedPieceType=Piece.P),
 			Move(Square.E1, Square.F1),
 			Move(Square.E1, Square.E2),
 			Move(Square.E1, Square.E3),
-			Move(Square.E1, Square.E4, 0x04)
+			Move(Square.E1, Square.E4, 0x04, capturedPieceType=Piece.P)
 		]
 		self.assertCountEqual(moves, expected)
 
@@ -442,7 +452,7 @@ class BishopMoveTests(unittest.TestCase):
 		self.assertCountEqual(moves, expected)
 
 	def test_wGenerateBishopMoves_AfterPawns(self):
-		position = Position('rnbqkbnr/p1p2p1p/1p4p1/3pp3/3PP3/1P4P1/P1P2P1P/RNBQKBNR w KQkq')
+		position = Position('rnbqkbnr/p1p2p1p/1p4p1/3pp3/3PP3/1P4P1/P1P2P1P/RNBQKBNR b KQkq - 0 1')
 		moves = generateBishopMoves(position)
 		expected = [
 			Move(Square.C1, Square.B2),
@@ -463,7 +473,7 @@ class BishopMoveTests(unittest.TestCase):
 		self.assertCountEqual(moves, expected)
 
 	def test_bGenerateBishopMoves_AfterPawns(self):
-		position = Position('rnbqkbnr/p1p2p1p/1pp3p1/3pp3/3PP3/1P4P1/P1P2P1P/RNBQKBNR b KQkq')
+		position = Position('rnbqkbnr/p1p2p1p/1p4p1/3pp3/3PP3/1P4P1/P1P2P1P/RNBQKBNR b KQkq - 0 1')
 		position.sideToMove = Color.BLACK
 		moves = generateBishopMoves(position)
 		expected = [
@@ -507,7 +517,7 @@ class BishopMoveTests(unittest.TestCase):
 			Move(Square.D1, Square.D4),
 			Move(Square.D1, Square.D5),
 			Move(Square.D1, Square.D6),
-			Move(Square.D1, Square.D7, 0x04)
+			Move(Square.D1, Square.D7, 0x04, capturedPieceType=Piece.P)
 		]
 		self.assertCountEqual(moves, expected)
 
@@ -522,7 +532,7 @@ class BishopMoveTests(unittest.TestCase):
 			Move(Square.D8, Square.D5),
 			Move(Square.D8, Square.D4),
 			Move(Square.D8, Square.D3),
-			Move(Square.D8, Square.D2, 0x04)
+			Move(Square.D8, Square.D2, 0x04, capturedPieceType=Piece.P)
 		]
 		self.assertCountEqual(moves, expected)
 

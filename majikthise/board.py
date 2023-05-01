@@ -237,7 +237,8 @@ class CBoard:
 	def makeMove(self, move: 'Move'):
 		if move.flag == '0x04':
 			self.removePiece(move.destination.bitboard())
-		# TODO Handle en passant and promotions
+		# TODO Handle en passant and promotions and double pawn pushes
+
 
 		color, piece = self.removePiece(move.origin.bitboard())
 		self.putPiece(piece, color, move.destination)
@@ -318,6 +319,22 @@ class CBoard:
 		elif piece == Piece.K and color == Color.BLACK:
 			self.blackKing = self.blackKing | square.bitboard()
 
+	def pieceTypeAtSquare(self, square: Square):
+		piece: Piece = None
+
+		if (self.whitePawns | self.blackPawns) & square.bitboard():
+			piece = Piece.P
+		elif (self.whiteKnights | self.blackKnights) & square.bitboard():
+			piece = Piece.N
+		elif (self.whiteBishops | self.blackBishops) & square.bitboard():
+			piece = Piece.B
+		elif (self.whiteRooks | self.blackRooks) & square.bitboard():
+			piece = Piece.R
+		elif (self.whiteQueens | self.blackQueens) & square.bitboard():
+			piece = Piece.Q
+
+		return piece
+
 class Position:
 	# TODO Write Equality Function
 	def __init__(self, fen=None):
@@ -378,10 +395,19 @@ class Position:
 		return _score if self.sideToMove == Color.WHITE else -1 * _score
 
 class Move:
-	def __init__(self, origin: Square=Square.NONE, destination: Square=Square.NONE, flag=0):
+	def __init__(self, 
+				origin: Square=Square.NONE, 
+				destination: Square=Square.NONE, 
+				flag=0, 
+				capturedPieceType=None):
 			self.origin = origin
 			self.destination = destination
 			self.flag=flag
+			self.capturedPieceType = capturedPieceType
+			self.enpassantOrigin = origin if flag == 0x05 else Square.NONE
+
+			if flag == 0x04 and self.capturedPieceType == None:
+				raise Exception("A capture move was generated with no defined capturedPieceType.")
 
 	def __eq__(self, other):
 		return self.origin == other.origin and \

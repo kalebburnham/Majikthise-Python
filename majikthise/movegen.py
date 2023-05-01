@@ -152,7 +152,7 @@ def bGenerateDoublePawnPushMoves(board: CBoard) -> list:
 def wGeneratePawnCaptures(position: Position) -> list:
 	board = position.board
 	
-	# Eigth-rank pawn captures are handles in wGeneratePromotionAndCaptureMoves
+	# Eigth-rank pawn captures are handled in wGeneratePromotionAndCaptureMoves
 	singlePawns = singularize(board.whitePawns & ~SEVENTH_RANK)
 
 	moves = []
@@ -160,12 +160,14 @@ def wGeneratePawnCaptures(position: Position) -> list:
 		if noWe(singlePawns[i]) & BLACK_BOARD(board):
 			origin = Square(BSF(singlePawns[i]))
 			destination = Square(origin + 7)
-			moves.append(origin, destination, flag=0x04)
+			capturedPieceType = position.board.pieceTypeAtSquare(destination)
+			moves.append(Move(origin, destination, flag=0x04, capturedPieceType=capturedPieceType))
 
 		if noEa(singlePawns[i]) & BLACK_BOARD(board):
 			origin = Square(BSF(singlePawns[i]))
 			destination = Square(origin + 9)
-			moves.append(origin, destination, flag=0x04)
+			capturedPieceType = position.board.pieceTypeAtSquare(destination)
+			moves.append(Move(origin, destination, flag=0x04, capturedPieceType=capturedPieceType))
 
 	return moves
 
@@ -174,16 +176,19 @@ def bGeneratePawnCaptures(position: Position) -> list:
 
 	# First-rank pawn captures are handled in bGeneratePromotionAndCaptureMoves
 	singlePawns = singularize(board.blackPawns & ~SECOND_RANK)
+	moves = []
 	for i in range(len(singlePawns)):
 		if soWe(singlePawns[i]) & WHITE_BOARD(board):
 			origin = Square(BSF(singlePawns[i]))
 			destination = Square(origin - 9)
-			moves.append(origin, destination, flag=0x04)
+			capturedPieceType = position.board.pieceTypeAtSquare(destination)
+			moves.append(Move(origin, destination, flag=0x04, capturedPieceType=capturedPieceType))
 
 		if soEa(singlePawns[i]) & WHITE_BOARD(board):
 			origin = Square(BSF(singlePawns[i]))
 			destination = Square(origin - 7)
-			moves.append(origin, destination, flag=0x04)
+			capturedPieceType = position.board.pieceTypeAtSquare(destination)
+			moves.append(Move(origin, destination, flag=0x04, capturedPieceType=capturedPieceType))
 
 	return moves
 
@@ -341,10 +346,10 @@ def generateRookMoves(position: Position):
 				moves.append(Move(sqOrigin, sqDestination))
 			elif sqDestination.bitboard() & WHITE_BOARD(position.board):
 				if position.sideToMove == Color.BLACK:
-					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04, capturedPieceType=position.board.pieceTypeAtSquare(sqDestination)))
 			else:
 				if position.sideToMove == Color.WHITE:
-					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04, capturedPieceType=position.board.pieceTypeAtSquare(sqDestination)))
 
 	return moves
 
@@ -418,10 +423,10 @@ def generateQueenMoves(position):
 				moves.append(Move(sqOrigin, sqDestination))
 			elif sqDestination.bitboard() & WHITE_BOARD(position.board):
 				if position.sideToMove == Color.BLACK:
-					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04, capturedPieceType=position.board.pieceTypeAtSquare(sqDestination)))
 			else:
 				if position.sideToMove == Color.WHITE:
-					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04, capturedPieceType=position.board.pieceTypeAtSquare(sqDestination)))
 	return moves
 
 # Given any bitboard, return a list of bitboards with only one piece per board.
