@@ -180,6 +180,18 @@ class Fen:
 	def blackKing(self) -> np.uint64():
 		return self.findPiece('k')
 
+	def whiteKingCastle(self):
+		return 1 if re.search('[wb]\s.*K', self.fen) else 0
+
+	def whiteQueenCastle(self):
+		return 1 if re.search('[wb]\s.*Q', self.fen) else 0
+
+	def blackKingCastle(self):
+		return 1 if re.search('[wb]\s.*k', self.fen) else 0
+
+	def blackQueenCastle(self):
+		return 1 if re.search('[wb]\s.*q', self.fen) else 0
+
 class CBoard:
 	def __init__(self, fen: str = None):
 		self.fen = Fen(fen)
@@ -243,27 +255,58 @@ class CBoard:
 			return POPCOUNT(southOne(self.blackPawns) & blockers)
 
 	def makeMove(self, move: 'Move'):
-		if move.flag == '0x04':
+		if move.flag == 0x04:
 			self.removePiece(move.destination.bitboard())
 		# TODO Handle en passant and promotions and double pawn pushes
 
-
 		color, piece = self.removePiece(move.origin.bitboard())
 		self.putPiece(piece, color, move.destination)
+
+		if move.flag == 0x02:
+			# King Castle. Move the rook. Reset castling flags
+			if color == Color.WHITE:
+				_, _ = self.removePiece(Square.H1.bitboard())
+				self.putPiece(Piece.R, Color.WHITE, Square.F1)
+			else:
+				_, _ = self.removePiece(Square.H8.bitboard())
+				self.putPiece(Piece.R, Color.BLACK, Square.F8)
+
+		if move.flag == 0x03:
+			# Queen Castle. Move the rook.
+			if color == Color.WHITE:
+				_, _ = self.removePiece(Square.A1.bitboard())
+				self.putPiece(Piece.R, Color.WHITE, Square.D1)
+			else:
+				_, _ = self.removePiece(Square.A8.bitboard())
+				self.putPiece(Piece.R, Color.BLACK, Square.D8)
 		
 
 	def unmakeMove(self, move: 'Move'):
-		#reversedMove = Move(move.destination, move.origin, move.flag)
-		#self.makeMove(reversedMove)
 		color, piece = self.removePiece(move.destination.bitboard())
 		self.putPiece(piece, color, move.origin)
 
-		if move.flag == '0x04':
+		if move.flag == 0x02:
+			# King Castle. Put the rook back.
+			if color == Color.WHITE:
+				_, _ = self.removePiece(Square.F1.bitboard())
+				self.putPiece(Piece.R, Color.WHITE, Square.H1)
+			else:
+				_, _ = self.removePiece(Square.F8.bitboard())
+				self.putPiece(Piece.R, Color.BLACK, Square.H8)
+		
+		if move.flag == 0x03:
+			# Queen Castle. Put the rook back.
+			if color == Color.WHITE:
+				_, _ = self.removePiece(Square.D1.bitboard())
+				self.putPiece(Piece.R, Color.WHITE, Square.A1)
+			else:
+				_, _ = self.removePiece(Square.D8.bitboard())
+				self.putPiece(Piece.R, Color.BLACK, Square.A8)
+
+		if move.flag == 0x04:
 			# Puts the captured piece back.
 			self.putPiece(move.capturedPieceType, ~color, move.origin)
 		
-		self.putPiece(piece, color, move.origin)
-
 	def removePiece(self, bbSquare):
 		if bbSquare & self.whitePawns:
 			self.whitePawns = self.whitePawns ^ bbSquare
@@ -347,7 +390,6 @@ class CBoard:
 		return piece
 
 class Position:
-	# TODO Write Equality Function
 	def __init__(self, fen=None):
 		self.parent: 'Position' = None
 		self.board: CBoard = CBoard(fen)
@@ -358,10 +400,10 @@ class Position:
 		self.halfmove_clock = 0
 
 		# If 1, then castling is allowed.
-		self.wkCastle = 1
-		self.wqCastle = 1
-		self.bkCastle = 1
-		self.bqCastle = 1
+		self.wkCastle = self.board.fen.whiteKingCastle()
+		self.wqCastle = self.board.fen.whiteQueenCastle()
+		self.bkCastle = self.board.fen.blackKingCastle()
+		self.bqCastle = self.board.fen.blackQueenCastle()
 
 		self.epTargetSquare: Square = Square.NONE
 
@@ -374,18 +416,67 @@ class Position:
 				and self.bkCastle == other.bkCastle
 				and self.bqCastle == other.bqCastle)
 
+	def __repr__(self):
+		return f'''Board: \n 
+				{self.board} \n 
+				Side to move: {self.sideToMove} \n 
+				Halfmove clock: {self.halfmove_clock} \n 
+				White kingside castle: {self.wkCastle} \n
+				White queenside castle: {self.wqCastle} \n
+				Black kingside castle: {self.bkCastle} \n
+				Black queenside castle: {self.bqCastle}'''
+
+	def __str__(self):
+		return f'''Board: \n 
+				{self.board} \n 
+				Side to move: {self.sideToMove} \n 
+				Halfmove clock: {self.halfmove_clock} \n 
+				White kingside castle: {self.wkCastle} \n
+				White queenside castle: {self.wqCastle} \n
+				Black kingside castle: {self.bkCastle} \n
+				Black queenside castle: {self.bqCastle}'''
+
+
 	def makeMove(self, move: 'Move'):
 		# What all needs to be updated?
 		# The board - need to translate squares to pieces on them.
 		# The turn. Should swap after updates are complete.
 		# Halfmove clock?
 		self.board.makeMove(move)
+		
+		# TODO Update castling flags when king or rook moves.
+
+		# If castling, update castle flags.
+		if move.flag == 0x02 or move.flag == 0x03:
+			# King castle
+			if self.sideToMove == Color.WHITE:
+				self.wkCastle = 0
+				self.wqCastle = 0
+			else:
+				self.bkCastle = 0
+				self.bqCastle = 0
+
+
 		self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.BLACK
 		return
 
 	def unmakeMove(self, move: 'Move'):
 		# TODO Captures, en passants, promotions, halfmove clock
 		self.board.unmakeMove(move)
+
+		# If castling, update castle flags.
+		# TODO This can lead to false results if one side initially had a flag of 0 before the move.
+		# It might be better to store castling flags in a stack in the Position.
+		if move.flag == 0x02 or move.flag == 0x03:
+			# King castle
+			if self.sideToMove == Color.WHITE:
+				self.wkCastle = 1
+				self.wqCastle = 1
+			else:
+				self.bkCastle = 1
+				self.bqCastle = 1
+
+
 		self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.BLACK
 		return
 

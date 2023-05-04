@@ -83,6 +83,51 @@ class MakeMoveTests(unittest.TestCase):
         expected = Position()
         self.assertEqual(position, expected)
 
+    def test_KingsideCastle_makeMove(self):
+        position = Position('rnbqk2r/ppppbppp/5n2/4p3/4P3/5N2/PPPPBPPP/RNBQK2R w KQkq - 0 1')
+        position.makeMove(Move(Square.E1, Square.G1, flag=0x02))
+        position.makeMove(Move(Square.E8, Square.G8, flag=0x02))
+
+        expected = Position('rnbq1rk1/ppppbppp/5n2/4p3/4P3/5N2/PPPPBPPP/RNBQ1RK1 w - - 0 1')
+
+        self.assertEqual(position, expected)
+
+    def test_KingsideCastle_unmakeMove(self):
+        position = Position('rnbqk2r/ppppbppp/5n2/4p3/4P3/5N2/PPPPBPPP/RNBQK2R w KQkq - 0 1')
+        move1 = Move(Square.E1, Square.G1, flag=0x02)
+        move2 = Move(Square.E8, Square.G8, flag=0x02)
+        position.makeMove(move1)
+        position.makeMove(move2)
+
+        position.unmakeMove(move2)
+        position.unmakeMove(move1)
+        expected = Position('rnbqk2r/ppppbppp/5n2/4p3/4P3/5N2/PPPPBPPP/RNBQK2R w KQkq - 0 1')
+
+        self.assertEqual(position, expected)
+
+    def test_QueensideCastle_makeMove(self):
+        position = Position('r3kbnr/ppp1pppp/2nqb3/3p4/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1')
+        move1 = Move(Square.E1, Square.C1, flag=0x03)
+        move2 = Move(Square.E8, Square.C8, flag=0x03)
+        position.makeMove(move1)
+        position.makeMove(move2)
+
+        expected = Position('2kr1bnr/ppp1pppp/2nqb3/3p4/3P4/2NQB3/PPP1PPPP/2KR1BNR w - - 0 1')
+        self.assertEqual(position, expected)
+
+    def test_QueensideCastle_unmakeMove(self):
+        position = Position('r3kbnr/ppp1pppp/2nqb3/3p4/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1')
+        move1 = Move(Square.E1, Square.C1, flag=0x03)
+        move2 = Move(Square.E8, Square.C8, flag=0x03)
+        position.makeMove(move1)
+        position.makeMove(move2)
+        position.unmakeMove(move2)
+        position.unmakeMove(move1)
+
+        expected = Position('r3kbnr/ppp1pppp/2nqb3/3p4/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1')
+        self.assertEqual(position, expected)
+
+    
 class FenTests(unittest.TestCase):
     def test_Fen_StartingPosition(self):
         position = Position()
