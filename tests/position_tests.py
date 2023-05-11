@@ -127,6 +127,73 @@ class MakeMoveTests(unittest.TestCase):
         expected = Position('r3kbnr/ppp1pppp/2nqb3/3p4/3P4/2NQB3/PPP1PPPP/R3KBNR w KQkq - 0 1')
         self.assertEqual(position, expected)
 
+    def test_AllOpeningMoves_white(self):
+        position = Position()
+        moves = generateAllMoves(position)
+
+        for move in moves:
+            position.makeMove(move)
+            position.unmakeMove(move)
+
+        expected = Position()
+        self.assertEqual(position, expected)
+
+    def test_AllOpeningMoves_black(self):
+        position = Position()
+        whiteMoves = generateAllMoves(position)
+        position.makeMove(whiteMoves[0]) # Make the first move to hand it over to black.
+
+        blackMoves = generateAllMoves(position)
+        for move in blackMoves:
+            position.makeMove(move)
+            position.unmakeMove(move)
+
+        position.unmakeMove(whiteMoves[0])
+        expected = Position()
+        self.assertEqual(position, expected)
+
+    def test_Sequence1(self):
+        position = Position()
+        move1 = Move(Square.A2, Square.A3)
+        move2 = Move(Square.B8, Square.A6)
+        move3 = Move(Square.B2, Square.B4, flag=0x01)
+        move4 = Move(Square.A6, Square.B4, flag=0x04, capturedPieceType=Piece.P)
+        
+        position.makeMove(move1)
+        position.makeMove(move2)
+        position.makeMove(move3)
+        position.makeMove(move4)
+        position.unmakeMove(move4)
+        position.unmakeMove(move3)
+        position.unmakeMove(move2)
+        position.unmakeMove(move1)
+
+        expected = Position()
+
+        self.assertEqual(position, expected)
+
+    def test_KnightCapturesPawn(self):
+        position = Position('r1bqkbnr/pppppppp/n7/8/1P6/P7/2PPPPPP/RNBQKBNR b KQkq - 0 1')
+        
+        move = Move(Square.A6, Square.B4, flag=0x04, capturedPieceType=Piece.P)
+        position.makeMove(move)
+        position.unmakeMove(move)
+        expected = Position('r1bqkbnr/pppppppp/n7/8/1P6/P7/2PPPPPP/RNBQKBNR b KQkq - 0 1')
+
+        self.assertEqual(position, expected)
+
+class Traversals(unittest.TestCase):
+
+    def test_ConsecutiveMoves_Depth3(self):
+        global position
+        depth = 5
+        position = Position()
+        import cProfile
+        cProfile.run('position.traverse(5)')
+        #nMoves = position.traverse(depth)
+        #print(nMoves)
+
+
     
 class FenTests(unittest.TestCase):
     def test_Fen_StartingPosition(self):

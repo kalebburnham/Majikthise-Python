@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import IntEnum
+from copy import deepcopy
 
 import numpy as np
 import re
@@ -305,7 +306,7 @@ class CBoard:
 
 		if move.flag == 0x04:
 			# Puts the captured piece back.
-			self.putPiece(move.capturedPieceType, ~color, move.origin)
+			self.putPiece(move.capturedPieceType, ~color, move.destination)
 		
 	def removePiece(self, bbSquare):
 		if bbSquare & self.whitePawns:
@@ -345,7 +346,8 @@ class CBoard:
 			self.blackKing = self.blackKing ^ bbSquare
 			return Color.BLACK, Piece.K
 
-		raise Exception("Could not remove piece. square:" + str(bin(self.whitePawns)))
+		from printer import printBitboard
+		raise Exception(f"Could not remove piece. {printBitboard(self.whitePawns)} square: {BSF(bbSquare)}")
 
 	def putPiece(self, piece: Piece, color: Color, square: Square):
 		if piece == Piece.P and color == Color.WHITE:
@@ -407,6 +409,8 @@ class Position:
 
 		self.epTargetSquare: Square = Square.NONE
 
+		self.moveSequence = []
+
 	def __eq__(self, other):
 		return (self.board == other.board
 				and self.sideToMove == other.sideToMove
@@ -442,6 +446,7 @@ class Position:
 		# The board - need to translate squares to pieces on them.
 		# The turn. Should swap after updates are complete.
 		# Halfmove clock?
+		self.moveSequence.append(move)
 		self.board.makeMove(move)
 		
 		# TODO Update castling flags when king or rook moves.
@@ -463,6 +468,7 @@ class Position:
 	def unmakeMove(self, move: 'Move'):
 		# TODO Captures, en passants, promotions, halfmove clock
 		self.board.unmakeMove(move)
+		self.moveSequence.pop()
 
 		# If castling, update castle flags.
 		# TODO This can lead to false results if one side initially had a flag of 0 before the move.
@@ -475,7 +481,6 @@ class Position:
 			else:
 				self.bkCastle = 1
 				self.bqCastle = 1
-
 
 		self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.BLACK
 		return
@@ -495,6 +500,26 @@ class Position:
 		_score -= 0.5 * (self.board.blockedPawnCount(Color.WHITE) - self.board.blockedPawnCount(Color.BLACK))
 
 		return _score if self.sideToMove == Color.WHITE else -1 * _score
+
+	def traverse(self, ply):
+		if ply == 0:
+			return 0
+
+		from movegen import generateAllMoves
+		moves = generateAllMoves(self)
+		nMoves = len(moves)
+		for move in moves:
+			#current = deepcopy(self)
+			self.makeMove(move)
+			nMoves += self.traverse(ply-1)
+			self.unmakeMove(move)
+			#if self != current:
+				#from printer import printCBoard
+				#printCBoard(current.board)
+				#printCBoard(self.board)
+				#raise Exception(f"Positions not equivalent: {move.capturedPieceType}\n{self.moveSequence}")
+		
+		return nMoves
 
 class Move:
 	def __init__(self, 

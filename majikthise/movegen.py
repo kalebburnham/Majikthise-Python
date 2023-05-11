@@ -132,7 +132,8 @@ def wGenerateDoublePawnPushMoves(position: Position) -> list:
 
 	return moves
 
-def bGenerateDoublePawnPushMoves(board: CBoard) -> list:
+def bGenerateDoublePawnPushMoves(position: Position) -> list:
+	board = position.board
 	occupied = WHITE_BOARD(board) | BLACK_BOARD(board)
 	toBoard = southOne(southOne(SECOND_RANK & board.blackPawns) & ~occupied) & ~occupied
 	eligiblePawns = northOne(northOne(toBoard))
@@ -172,7 +173,7 @@ def wGeneratePawnCaptures(position: Position) -> list:
 	return moves
 
 def bGeneratePawnCaptures(position: Position) -> list:
-	board = position.board()
+	board = position.board
 
 	# First-rank pawn captures are handled in bGeneratePromotionAndCaptureMoves
 	singlePawns = singularize(board.blackPawns & ~SECOND_RANK)
@@ -235,12 +236,14 @@ def generateKnightMoves(position: Position) -> list:
 			elif bb & WHITE_BOARD(position.board) and position.sideToMove == Color.BLACK:
 				# Capture
 				move.flag=0x04
+				move.capturedPieceType = position.board.pieceTypeAtSquare(move.destination)
 				pseudolegalMoves.append(move)
 			elif bb & BLACK_BOARD(position.board) and position.sideToMove == Color.BLACK:
 				# Intersects own pieces, ignore move.
 				continue
 			elif bb & BLACK_BOARD(position.board) and position.sideToMove == Color.WHITE:
 				move.flag=0x04
+				move.capturedPieceType = position.board.pieceTypeAtSquare(move.destination)
 				pseudolegalMoves.append(move)
 			else:
 				# Quiet move.
