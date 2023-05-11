@@ -74,7 +74,7 @@ bsf_index = [0,  1, 48,  2, 57, 49, 28,  3,
 # https://www.chessprogramming.org/BitScan#DeBruijnMultiplation
 def BSF(b: np.uint64()) -> int:
 	debruijn64 = np.uint64(0x03f79d71b4cb0a89)
-	assert b != 0
+	#assert b != 0 # Keeping the assert doubles the cost of the function from 1.5 to 3 nanoseconds.
 	return bsf_index[((b & -b) * debruijn64) >> np.uint64(58)]
 
 bsr_index = [0, 47,  1, 56, 48, 27,  2, 60,
@@ -92,7 +92,7 @@ bsr_index = [0, 47,  1, 56, 48, 27,  2, 60,
 # authors Kim Walisch, Mark Dickinson
 def BSR(b: np.uint64()) -> int:
 	debruijn64 = np.uint64(0x03f79d71b4cb0a89)
-	assert b != 0
+	# assert b != 0
 	b |= b >> np.uint(0x01)
 	b |= b >> np.uint(0x02)
 	b |= b >> np.uint(0x04)
