@@ -182,6 +182,78 @@ class MakeMoveTests(unittest.TestCase):
 
         self.assertEqual(position, expected)
 
+    def test_Sequence2(self):
+        # Not a legal setup. King moves into check.
+        position = Position()
+        move1 = Move(Square.B1, Square.C3)
+        move2 = Move(Square.E7, Square.E6)
+        move3 = Move(Square.C3, Square.D5)
+        move4 = Move(Square.E8, Square.E7)
+        
+        position.makeMove(move1)
+        position.makeMove(move2)
+        position.makeMove(move3)
+        position.makeMove(move4)
+        position.unmakeMove(move4)
+        position.unmakeMove(move3)
+        position.unmakeMove(move2)
+        position.unmakeMove(move1)
+
+        expected = Position()
+
+        self.assertEqual(position, expected)
+
+    def test_Sequence3(self):
+        position = Position()
+        moves = [Move(Square.B1, Square.C3),
+                 Move(Square.E7, Square.E6),
+                 Move(Square.F7, Square.F6), # Bad move
+                 Move(Square.A1, Square.B1),
+                 Move(Square.D2, Square.D3),
+                 Move(Square.C3, Square.B1, flag=0x04, capturedPieceType=Piece.R)]
+        for move in moves:
+            #printBitboard(WHITE_BOARD(position.board))
+            position.makeMove(move)
+            #print(position.sideToMove)
+            
+        for move in moves[::-1]:
+            print(position.sideToMove)
+            printBitboard(position.board.blackRooks)
+            printBitboard(WHITE_BOARD(position.board))
+            position.unmakeMove(move)
+
+        expected = Position()
+        #printBitboard(position.board.whiteRooks)
+        #printBitboard(expected.board.whiteRooks)
+        self.assertEqual(position, expected)
+
+    def test_Sequence4(self):
+        position = Position()
+
+        moves = [Move(Square.B1, Square.C3),
+                 Move(Square.E7, Square.E6),
+                 Move(Square.C3, Square.D5),
+                 Move(Square.E8, Square.E7),
+                 Move(Square.D5, Square.E7, flag=0x04, capturedPieceType=Piece.K)]
+        for move in moves:
+            position.makeMove(move)
+
+        for move in moves[::-1]:
+            position.unmakeMove(move)
+
+        expected = Position()
+        self.assertEqual(position, expected)
+
+def runMultiple():
+    square = Square.A1
+    for _ in range(10000000):
+        square.bitboard
+
+def runMultipleFix():
+    square = Square.A1
+    for _ in range(10000000):
+        square.bitboard2()
+
 class Traversals(unittest.TestCase):
 
     def test_ConsecutiveMoves_Depth3(self):
@@ -189,10 +261,40 @@ class Traversals(unittest.TestCase):
         depth = 5
         position = Position()
         import cProfile
-        cProfile.run('position.traverse(5)')
+        cProfile.run('position.traverse(3)')
         #nMoves = position.traverse(depth)
         #print(nMoves)
 
+    def test_ConsecutiveMoves_Depth4(self):
+        global position
+        depth = 5
+        position = Position()
+        import cProfile
+        cProfile.run('position.traverse(4)')
+        #nMoves = position.traverse(depth)
+        #print(nMoves)
+
+    def test_ConsecutiveMoves_Depth5(self):
+        global position
+        depth = 5
+        position = Position()
+        #import cProfile
+        #cProfile.run('position.traverse(5)')
+        nMoves = position.traverse(depth)
+        print(nMoves)
+        expected = Position()
+        self.assertEqual(expected, position)
+
+    def test_BitShift(self):
+        global square
+        square = Square.A1
+
+        import cProfile
+        
+        cProfile.run('runMultiple()')
+        #cProfile.run('runMultipleFix()')
+
+    
 
     
 class FenTests(unittest.TestCase):

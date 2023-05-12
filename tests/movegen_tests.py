@@ -150,6 +150,14 @@ class PawnMoveTests(unittest.TestCase):
 
 		self.assertCountEqual(moves, expectedMoves)
 
+	def test_wGeneratePawnCaptures_KnightOnC3(self):
+		position = Position()
+		moves = [Move(Square.B1, Square.C3), Move(Square.E7, Square.E6)]
+		for move in moves:
+			position.makeMove(move)
+		generatedMoves = generateAllMoves(position)
+		# TODO Incomplete Test
+		return
 class KnightMoveTests(unittest.TestCase):
 
 	def test_knightAttacks_CenterOfBoard(self):
@@ -599,7 +607,17 @@ class MakeMoveTests(unittest.TestCase):
 		expected = Position('rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1')
 		self.assertEqual(position, expected)
 
+class SequenceTests(unittest.TestCase):
 
+	def test_Sequence1(self):
+		position = Position()
+		moves = [Move(Square.B1, Square.C3), Move(Square.E7, Square.E6)]
+		for move in moves:
+			position.makeMove(move)
+
+		printBitboard(WHITE_BOARD(position.board))
+		generatedMoves = generateAllMoves(position)
+		print(generatedMoves)
 		
 
 	

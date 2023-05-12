@@ -348,7 +348,7 @@ class CBoard:
 			return Color.BLACK, Piece.K
 
 		from printer import printBitboard
-		raise Exception(f"Could not remove piece. {printBitboard(self.whitePawns)} square: {BSF(bbSquare)}")
+		raise Exception(f"Could not remove piece. {self}  {bbSquare} {printBitboard(self.whiteRooks)} square: {BSF(bbSquare)}")
 
 	def putPiece(self, piece: Piece, color: Color, square: Square):
 		if piece == Piece.P and color == Color.WHITE:
@@ -389,11 +389,13 @@ class CBoard:
 			piece = Piece.R
 		elif (self.whiteQueens | self.blackQueens) & square.bitboard():
 			piece = Piece.Q
+		elif (self.whiteKing | self.blackKing) & square.bitboard():
+			piece = Piece.K
 
 		return piece
 
 class Position:
-	def __init__(self, fen=None):
+	def __init__(self, fen=None, debug=False):
 		self.parent: 'Position' = None
 		self.board: CBoard = CBoard(fen)
 		self.wAttacks: CBoard = None
@@ -411,6 +413,8 @@ class Position:
 		self.epTargetSquare: Square = Square.NONE
 
 		self.moveSequence = []
+
+		self.debug = debug
 
 	def __eq__(self, other):
 		return (self.board == other.board
@@ -448,7 +452,11 @@ class Position:
 		# The turn. Should swap after updates are complete.
 		# Halfmove clock?
 		self.moveSequence.append(move)
-		self.board.makeMove(move)
+		if self.debug:
+			file = open("Position_log.txt", "a")
+			file.write(f'{self.sideToMove} MAKE MOVE {move} SEQUENCE {self.moveSequence}\n')
+			file.close()
+		self.board.makeMove(move, self.sideToMove)
 		
 		# TODO Update castling flags when king or rook moves.
 
@@ -468,6 +476,15 @@ class Position:
 
 	def unmakeMove(self, move: 'Move'):
 		# TODO Captures, en passants, promotions, halfmove clock
+		#self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.BLACK
+
+
+		if move.capturedPieceType == Piece.R:
+			print(self.moveSequence)
+		if self.debug:
+			file = open("Position_log.txt", "a")
+			file.write(f'{self.sideToMove} UNMAKE MOVE {move}\n')
+			file.close()
 		self.board.unmakeMove(move)
 		self.moveSequence.pop()
 
@@ -510,13 +527,13 @@ class Position:
 		moves = generateAllMoves(self)
 		nMoves = len(moves)
 		for move in moves:
-			#current = deepcopy(self)
+			#expected = deepcopy(self)
 			self.makeMove(move)
 			nMoves += self.traverse(ply-1)
 			self.unmakeMove(move)
-			#if self != current:
+			#if self != expected:
 				#from printer import printCBoard
-				#printCBoard(current.board)
+				#printCBoard(expected.board)
 				#printCBoard(self.board)
 				#raise Exception(f"Positions not equivalent: {move.capturedPieceType}\n{self.moveSequence}")
 		
