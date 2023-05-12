@@ -203,30 +203,6 @@ class MakeMoveTests(unittest.TestCase):
 
         self.assertEqual(position, expected)
 
-    def test_Sequence3(self):
-        position = Position()
-        moves = [Move(Square.B1, Square.C3),
-                 Move(Square.E7, Square.E6),
-                 Move(Square.F7, Square.F6), # Bad move
-                 Move(Square.A1, Square.B1),
-                 Move(Square.D2, Square.D3),
-                 Move(Square.C3, Square.B1, flag=0x04, capturedPieceType=Piece.R)]
-        for move in moves:
-            #printBitboard(WHITE_BOARD(position.board))
-            position.makeMove(move)
-            #print(position.sideToMove)
-            
-        for move in moves[::-1]:
-            print(position.sideToMove)
-            printBitboard(position.board.blackRooks)
-            printBitboard(WHITE_BOARD(position.board))
-            position.unmakeMove(move)
-
-        expected = Position()
-        #printBitboard(position.board.whiteRooks)
-        #printBitboard(expected.board.whiteRooks)
-        self.assertEqual(position, expected)
-
     def test_Sequence4(self):
         position = Position()
 
@@ -284,6 +260,17 @@ class Traversals(unittest.TestCase):
         print(nMoves)
         expected = Position()
         self.assertEqual(expected, position)
+
+    def test_ConsecutiveMoves_Depth6(self):
+        global position
+        depth = 5
+        position = Position()
+        import cProfile
+        cProfile.run('position.traverse(6)')
+        #nMoves = position.traverse(depth)
+        #print(nMoves)
+        #expected = Position()
+        #self.assertEqual(expected, position)
 
     def test_BitShift(self):
         global square

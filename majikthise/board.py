@@ -100,7 +100,7 @@ class Square(IntEnum):
 
 	def isEmpty(self, board: 'CBoard'):
 		# Returns true if no white or black pieces occupy the square.
-		return not bool(self.bitboard() & (WHITE_BOARD(board) | BLACK_BOARD(board)))
+		return not bool(self.bitboard() & (board.whiteBoard | board.blackBoard))
 
   #SQUARE_NB = 64
 
@@ -212,6 +212,9 @@ class CBoard:
 		self.blackQueens = self.fen.blackQueens()
 		self.blackKing = self.fen.blackKing()
 
+		self.whiteBoard = self.whitePawns | self.whiteKnights | self.whiteBishops | self.whiteRooks | self.whiteQueens | self.whiteKing
+		self.blackBoard = self.blackPawns | self.blackKnights | self.blackBishops | self.blackRooks | self.blackQueens | self.blackKing
+
 	def __eq__(self, other: 'CBoard'):
 		return (self.whitePawns == other.whitePawns
 				and self.whiteBishops == other.whiteBishops
@@ -249,7 +252,7 @@ class CBoard:
 		return POPCOUNT(self.isolanis(sideToMove))
 		
 	def blockedPawnCount(self, sideToMove: Color) -> int:
-		blockers = WHITE_BOARD(self) | BLACK_BOARD(self)
+		blockers = self.whiteBoard | self.blackBoard
 
 		if sideToMove == Color.WHITE:
 			return POPCOUNT(northOne(self.whitePawns) & blockers)
@@ -281,6 +284,8 @@ class CBoard:
 			else:
 				_, _ = self.removePiece(Square.A8.bitboard())
 				self.putPiece(Piece.R, Color.BLACK, Square.D8)
+
+		self.updateColorBoards()
 		
 
 	def unmakeMove(self, move: 'Move'):
@@ -308,6 +313,8 @@ class CBoard:
 		if move.flag == 0x04:
 			# Puts the captured piece back.
 			self.putPiece(move.capturedPieceType, ~color, move.destination)
+
+		self.updateColorBoards()
 		
 	def removePiece(self, bbSquare):
 		if bbSquare & self.whitePawns:
@@ -394,6 +401,10 @@ class CBoard:
 
 		return piece
 
+	def updateColorBoards(self):
+		self.whiteBoard = self.whitePawns | self.whiteKnights | self.whiteBishops | self.whiteRooks | self.whiteQueens | self.whiteKing
+		self.blackBoard = self.blackPawns | self.blackKnights | self.blackBishops | self.blackRooks | self.blackQueens | self.blackKing
+
 class Position:
 	def __init__(self, fen=None, debug=False):
 		self.parent: 'Position' = None
@@ -456,7 +467,7 @@ class Position:
 			file = open("Position_log.txt", "a")
 			file.write(f'{self.sideToMove} MAKE MOVE {move} SEQUENCE {self.moveSequence}\n')
 			file.close()
-		self.board.makeMove(move, self.sideToMove)
+		self.board.makeMove(move)
 		
 		# TODO Update castling flags when king or rook moves.
 
@@ -477,10 +488,6 @@ class Position:
 	def unmakeMove(self, move: 'Move'):
 		# TODO Captures, en passants, promotions, halfmove clock
 		#self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.BLACK
-
-
-		if move.capturedPieceType == Piece.R:
-			print(self.moveSequence)
 		if self.debug:
 			file = open("Position_log.txt", "a")
 			file.write(f'{self.sideToMove} UNMAKE MOVE {move}\n')

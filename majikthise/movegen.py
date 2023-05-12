@@ -66,6 +66,7 @@ def generateAllMoves(position: Position):
 	moves.extend(generateQueenMoves(position))
 	moves.extend(generateKingMoves(position))
 	
+	
 	return moves
 
 def wGenerateAllPawnMoves(position: Position):
@@ -73,7 +74,7 @@ def wGenerateAllPawnMoves(position: Position):
 
 def wGeneratePawnPushMoves(position: Position) -> list:
 	board = position.board
-	occupied: np.uint64() = WHITE_BOARD(board) | BLACK_BOARD(board)
+	occupied: np.uint64() = board.whiteBoard | board.blackBoard
 	toBoard: np.uint64() = northOne(board.whitePawns) & ~occupied
 
 	# Promotions are handled elsewhere, so pawns on the seventh rank are ignored.
@@ -93,7 +94,7 @@ def wGeneratePawnPushMoves(position: Position) -> list:
 
 def bGeneratePawnPushMoves(position: Position) -> list:
 	board = position.board
-	occupied: np.uint64() = WHITE_BOARD(board) | BLACK_BOARD(board)
+	occupied: np.uint64() = board.whiteBoard | board.blackBoard
 	toBoard: np.uint64() = southOne(board.blackPawns) & ~occupied
 
 	# Promotions are handled elsewhere, so pawns on the second rank are ignored.
@@ -113,12 +114,15 @@ def bGeneratePawnPushMoves(position: Position) -> list:
 
 def wGenerateDoublePawnPushMoves(position: Position) -> list:
 	board = position.board
-	occupied = WHITE_BOARD(board) | BLACK_BOARD(board)
+	occupied = board.whiteBoard | board.blackBoard
 	toBoard = northOne(northOne(SECOND_RANK & board.whitePawns) & ~occupied) & ~occupied
 	eligiblePawns = southOne(southOne(toBoard))
 
 	fromSingles = singularize(eligiblePawns)
 	toSingles = singularize(toBoard)
+
+	if (Square.A2.bitboard() | position.board.whitePawns) and not (Square.A3.bitboard() | Square.A4.bitboard()) & occupied:
+		pass
 
 	moves = []
 	while eligiblePawns > 0:
@@ -134,7 +138,7 @@ def wGenerateDoublePawnPushMoves(position: Position) -> list:
 
 def bGenerateDoublePawnPushMoves(position: Position) -> list:
 	board = position.board
-	occupied = WHITE_BOARD(board) | BLACK_BOARD(board)
+	occupied = board.whiteBoard | board.blackBoard
 	toBoard = southOne(southOne(SECOND_RANK & board.blackPawns) & ~occupied) & ~occupied
 	eligiblePawns = northOne(northOne(toBoard))
 
@@ -158,13 +162,13 @@ def wGeneratePawnCaptures(position: Position) -> list:
 
 	moves = []
 	for i in range(len(singlePawns)):
-		if noWe(singlePawns[i]) & BLACK_BOARD(board):
+		if noWe(singlePawns[i]) & board.blackBoard:
 			origin = Square(BSF(singlePawns[i]))
 			destination = Square(origin + 7)
 			capturedPieceType = position.board.pieceTypeAtSquare(destination)
 			moves.append(Move(origin, destination, flag=0x04, capturedPieceType=capturedPieceType))
 
-		if noEa(singlePawns[i]) & BLACK_BOARD(board):
+		if noEa(singlePawns[i]) & board.blackBoard:
 			origin = Square(BSF(singlePawns[i]))
 			destination = Square(origin + 9)
 			capturedPieceType = position.board.pieceTypeAtSquare(destination)
@@ -179,13 +183,13 @@ def bGeneratePawnCaptures(position: Position) -> list:
 	singlePawns = singularize(board.blackPawns & ~SECOND_RANK)
 	moves = []
 	for i in range(len(singlePawns)):
-		if soWe(singlePawns[i]) & WHITE_BOARD(board):
+		if soWe(singlePawns[i]) & board.whiteBoard:
 			origin = Square(BSF(singlePawns[i]))
 			destination = Square(origin - 9)
 			capturedPieceType = position.board.pieceTypeAtSquare(destination)
 			moves.append(Move(origin, destination, flag=0x04, capturedPieceType=capturedPieceType))
 
-		if soEa(singlePawns[i]) & WHITE_BOARD(board):
+		if soEa(singlePawns[i]) & board.whiteBoard:
 			origin = Square(BSF(singlePawns[i]))
 			destination = Square(origin - 7)
 			capturedPieceType = position.board.pieceTypeAtSquare(destination)
@@ -230,18 +234,18 @@ def generateKnightMoves(position: Position) -> list:
 		for move in possibleMoves:
 			destination: Square = move.destination
 			bb: np.uint64() = np.uint64(0x01) << np.uint64(destination.value)
-			if bb & WHITE_BOARD(position.board) and position.sideToMove == Color.WHITE:
+			if bb & position.board.whiteBoard and position.sideToMove == Color.WHITE:
 				# Intersects own pieces, ignore move.
 				continue
-			elif bb & WHITE_BOARD(position.board) and position.sideToMove == Color.BLACK:
+			elif bb & position.board.whiteBoard and position.sideToMove == Color.BLACK:
 				# Capture
 				move.flag=0x04
 				move.capturedPieceType = position.board.pieceTypeAtSquare(move.destination)
 				pseudolegalMoves.append(move)
-			elif bb & BLACK_BOARD(position.board) and position.sideToMove == Color.BLACK:
+			elif bb & position.board.blackBoard and position.sideToMove == Color.BLACK:
 				# Intersects own pieces, ignore move.
 				continue
-			elif bb & BLACK_BOARD(position.board) and position.sideToMove == Color.WHITE:
+			elif bb & position.board.blackBoard and position.sideToMove == Color.WHITE:
 				move.flag=0x04
 				move.capturedPieceType = position.board.pieceTypeAtSquare(move.destination)
 				pseudolegalMoves.append(move)
@@ -273,16 +277,16 @@ def generateKingMoves(position: Position):
 		sqDestination: Square = Square(BSF(bbToBoard))
 		bbDestination = sqDestination.bitboard()
 		bbToBoard ^= bbDestination
-		if bbDestination & WHITE_BOARD(position.board) and position.sideToMove == Color.WHITE:
+		if bbDestination & position.board.whiteBoard and position.sideToMove == Color.WHITE:
 			# Intersects own pieces. Ignore move.
 			continue
-		elif bbDestination & BLACK_BOARD(position.board) and position.sideToMove == Color.WHITE:
+		elif bbDestination & position.board.blackBoard and position.sideToMove == Color.WHITE:
 			# Capture
-			pseudolegalMoves.append(Move(sqOrigin, sqDestination, 0x04))
-		elif bbDestination & WHITE_BOARD(position.board) and position.sideToMove == Color.BLACK:
+			pseudolegalMoves.append(Move(sqOrigin, sqDestination, flag=0x04, capturedPieceType=position.board.pieceTypeAtSquare(sqDestination)))
+		elif bbDestination & position.board.whiteBoard and position.sideToMove == Color.BLACK:
 			# Capture
-			pseudolegalMoves.append(Move(sqOrigin, sqDestination, 0x04))
-		elif bbDestination & BLACK_BOARD(position.board) and position.sideToMove == Color.BLACK:
+			pseudolegalMoves.append(Move(sqOrigin, sqDestination, 0x04, capturedPieceType=position.board.pieceTypeAtSquare(sqDestination)))
+		elif bbDestination & position.board.blackBoard and position.sideToMove == Color.BLACK:
 			# Intersects own pieces. Ignore move.
 			continue
 		else:
@@ -338,7 +342,7 @@ def generateRookMoves(position: Position):
 		sqOrigin = Square(BSF(rooks))
 		rooks ^= sqOrigin.bitboard()
 
-		blockers = (WHITE_BOARD(position.board) | BLACK_BOARD(position.board)) ^ sqOrigin.bitboard()
+		blockers = (position.board.whiteBoard | position.board.blackBoard) ^ sqOrigin.bitboard()
 		bbDestinations = rookAttacks(sqOrigin, blockers)
 		while bbDestinations:
 			sqDestination = Square(BSF(bbDestinations))
@@ -347,7 +351,7 @@ def generateRookMoves(position: Position):
 
 			if sqDestination.isEmpty(position.board):
 				moves.append(Move(sqOrigin, sqDestination))
-			elif sqDestination.bitboard() & WHITE_BOARD(position.board):
+			elif sqDestination.bitboard() & position.board.whiteBoard:
 				if position.sideToMove == Color.BLACK:
 					moves.append(Move(sqOrigin, sqDestination, flag=0x04, capturedPieceType=position.board.pieceTypeAtSquare(sqDestination)))
 			else:
@@ -389,7 +393,7 @@ def generateBishopMoves(position: Position):
 		sqOrigin = Square(BSF(bishops))
 		bishops ^= sqOrigin.bitboard()
 
-		blockers = (WHITE_BOARD(position.board) | BLACK_BOARD(position.board)) ^ sqOrigin.bitboard()
+		blockers = (position.board.whiteBoard | position.board.blackBoard) ^ sqOrigin.bitboard()
 		bbDestinations = bishopAttacks(sqOrigin, blockers)
 
 		while bbDestinations:
@@ -398,12 +402,12 @@ def generateBishopMoves(position: Position):
 			bbDestinations ^= sqDestination.bitboard()
 			if sqDestination.isEmpty(position.board):
 				moves.append(Move(sqOrigin, sqDestination))
-			elif sqDestination.bitboard() & WHITE_BOARD(position.board):
+			elif sqDestination.bitboard() & position.board.whiteBoard:
 				if position.sideToMove == Color.BLACK:
-					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04, capturedPieceType=position.board.pieceTypeAtSquare(sqDestination)))
 			else:
 				if position.sideToMove == Color.WHITE:
-					moves.append(Move(sqOrigin, sqDestination, flag=0x04))
+					moves.append(Move(sqOrigin, sqDestination, flag=0x04, capturedPieceType=position.board.pieceTypeAtSquare(sqDestination)))
 	return moves
 		
 def generateQueenMoves(position):
@@ -416,7 +420,7 @@ def generateQueenMoves(position):
 	while queens:
 		sqOrigin = Square(BSF(queens))
 		queens ^= sqOrigin.bitboard()
-		blockers = (WHITE_BOARD(position.board) | BLACK_BOARD(position.board)) ^ sqOrigin.bitboard()
+		blockers = (position.board.whiteBoard | position.board.blackBoard) ^ sqOrigin.bitboard()
 		bbDestinations = bishopAttacks(sqOrigin, blockers) | rookAttacks(sqOrigin, blockers)
 		while bbDestinations:
 			sqDestination = Square(BSF(bbDestinations))
@@ -424,7 +428,7 @@ def generateQueenMoves(position):
 			bbDestinations ^= sqDestination.bitboard()
 			if sqDestination.isEmpty(position.board):
 				moves.append(Move(sqOrigin, sqDestination))
-			elif sqDestination.bitboard() & WHITE_BOARD(position.board):
+			elif sqDestination.bitboard() & position.board.whiteBoard:
 				if position.sideToMove == Color.BLACK:
 					moves.append(Move(sqOrigin, sqDestination, flag=0x04, capturedPieceType=position.board.pieceTypeAtSquare(sqDestination)))
 			else:
