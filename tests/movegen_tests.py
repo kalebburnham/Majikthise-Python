@@ -40,7 +40,7 @@ class PawnMoveTests(unittest.TestCase):
 		'''
 
 		position = Position()
-		position.board.whitePawns = np.uint64(0x080100)
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = np.uint64(0x080100)
 		moves = wGeneratePawnPushMoves(position)
 		move1 = Move(origin=Square.A2, destination=Square.A3)
 		move2 = Move(origin=Square.D3, destination=Square.D4)
@@ -61,8 +61,9 @@ class PawnMoveTests(unittest.TestCase):
 		00000000
 		'''
 		position = Position()
-		position.board.whitePawns = np.uint64(0x0104000000)
-		position.board.blackPawns = np.uint64(0x0400000000)
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = np.uint64(0x0104000000)
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = np.uint64(0x0400000000)
+		position.board.updateColorBoards()
 		moves = wGeneratePawnPushMoves(position)
 		expectedMove = Move(origin=Square.A5, destination=Square.A6)
 		self.assertCountEqual(moves, [expectedMove])
@@ -75,7 +76,7 @@ class PawnMoveTests(unittest.TestCase):
 		Place one pawn on A7. No moves should be returned.
 		'''
 		position = Position()
-		position.board.whitePawns = np.uint64(0x0001000000000000)
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = Square.A7.bitboard()
 		moves = wGeneratePawnPushMoves(position)
 		self.assertCountEqual(moves, [])
 
@@ -94,7 +95,7 @@ class PawnMoveTests(unittest.TestCase):
 		00000000
 		'''
 		position = Position()
-		position.board.blackPawns = np.uint64(0x0400800000)
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = np.uint64(0x0400800000)
 		moves = bGeneratePawnPushMoves(position)
 		move1 = Move(origin=Square.C5, destination=Square.C4)
 		move2 = Move(origin=Square.H3, destination=Square.H2)
@@ -105,8 +106,8 @@ class PawnMoveTests(unittest.TestCase):
 		generate their single space pushes.
 		'''
 		position = Position()
-		position.board.blackPawns = np.uint64(0x0400800000)
-		position.board.whitePawns = SECOND_RANK
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = np.uint64(0x0400800000)
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = SECOND_RANK
 		moves = bGeneratePawnPushMoves(position)
 		expectedMove = Move(origin=Square.C5, destination=Square.C4)
 		self.assertCountEqual(moves, [expectedMove])
@@ -119,7 +120,7 @@ class PawnMoveTests(unittest.TestCase):
 		Place one pawn on A2. No moves should be returned.
 		'''
 		position = Position()
-		position.board.blackPawns = np.uint64(0x100)
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = np.uint64(0x100)
 		moves = bGeneratePawnPushMoves(position)
 		self.assertCountEqual(moves, [])
 
@@ -129,7 +130,7 @@ class PawnMoveTests(unittest.TestCase):
 		all move to the fourth rank.
 		'''
 		position = Position()
-		position.board.whitePawns = SECOND_RANK
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = SECOND_RANK
 		moves = wGenerateDoublePawnPushMoves(position)
 		expectedMoves = [Move(Square.A2, Square.A4, 0x01),
 						Move(Square.B2, Square.B4, 0x01),
@@ -212,7 +213,7 @@ class KnightMoveTests(unittest.TestCase):
 
 	def test_wGenerateKnightMoves_NoKnightsExist(self):
 		position = Position()
-		position.board.whiteKnights = np.uint64(0)
+		position.board.pieceBoards[(Color.WHITE, Piece.N)] = np.uint64(0)
 		moves = generateKnightMoves(position)
 		expected = []
 		self.assertEqual(moves, expected)
@@ -220,9 +221,11 @@ class KnightMoveTests(unittest.TestCase):
 	def test_wGenerateKnightMoves_CombinationAttackBlocked(self):
 		# simulate game after moves 1. Nc3 e5 2. Nf3 d5 3. Ng5 e4
 		position = Position()
-		position.board.whiteKnights = Square.C3.bitboard() | Square.G5.bitboard()
-		position.board.blackPawns = np.uint64(0x00E7000810000000) # E4 and D5
+		position.board.pieceBoards[(Color.WHITE, Piece.N)] = Square.C3.bitboard() | Square.G5.bitboard()
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = np.uint64(0x00E7000810000000) # E4 and D5
+		position.board.updateColorBoards()
 		moves = generateKnightMoves(position)
+		print(moves)
 
 		expected = [
 			Move(origin=Square.C3, destination=Square.B1),
@@ -259,7 +262,7 @@ class KnightMoveTests(unittest.TestCase):
 	def test_bGenerateKnightMoves_NoKnightsExist(self):
 		position = Position()
 		position.sideToMove = Color.BLACK
-		position.board.blackKnights = np.uint64(0)
+		position.board.pieceBoards[(Color.BLACK, Piece.N)] = np.uint64(0)
 		moves = generateKnightMoves(position)
 		expected = []
 		self.assertEqual(moves, expected)
@@ -268,8 +271,9 @@ class KnightMoveTests(unittest.TestCase):
 		# simulate game after moves 1. e4 Nc6 2. d4 Nf6
 		position = Position()
 		position.sideToMove = Color.BLACK
-		position.board.blackKnights = Square.C6.bitboard() | Square.F6.bitboard()
-		position.board.whitePawns = np.uint64(0x0000000018000000) # D4 and E4
+		position.board.pieceBoards[(Color.BLACK, Piece.N)] = Square.C6.bitboard() | Square.F6.bitboard()
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = np.uint64(0x0000000018000000) # D4 and E4
+		position.board.updateColorBoards()
 		moves = generateKnightMoves(position)
 
 		expected = [
@@ -296,16 +300,16 @@ class KingMoveTests(unittest.TestCase):
 
 	def test_wGenerateKingMoves_e4e5(self):
 		position = Position()
-		position.board.whitePawns = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
-		position.board.blackPawns = (SEVENTH_RANK ^ Square.E7.bitboard()) | Square.E5.bitboard() # 1. e4 e5
-
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = (SEVENTH_RANK ^ Square.E7.bitboard()) | Square.E5.bitboard() # 1. e4 e5
+		position.board.updateColorBoards()
 		moves = generateKingMoves(position)
 		expected = [Move(Square.E1, Square.E2)]
 		self.assertCountEqual(moves, expected)
 
 	def test_bGenerateKingMoves_StartingPosition(self):
 		position = Position()
-		position.board.whitePawns = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
 		position.sideToMove = Color.BLACK
 		moves = generateKingMoves(position)
 		expected = []
@@ -316,9 +320,10 @@ class KingMoveTests(unittest.TestCase):
 		Test black's options after 1. e4 e5. Not a valid game, but all that matters is that the e7 pawn is moved.
 		'''
 		position = Position()
-		position.board.whitePawns = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
-		position.board.blackPawns = (SEVENTH_RANK ^ Square.E7.bitboard()) | Square.E5.bitboard() # 1. e4 e5
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = (SEVENTH_RANK ^ Square.E7.bitboard()) | Square.E5.bitboard() # 1. e4 e5
 		position.sideToMove = Color.BLACK
+		position.board.updateColorBoards()
 
 		moves = generateKingMoves(position)
 		expected = [Move(Square.E8, Square.E7)]
@@ -327,9 +332,9 @@ class KingMoveTests(unittest.TestCase):
 
 	def test_wGenerateKingMoves_KingsideCastle(self):
 		position = Position()
-		position.board.whiteKnights = Square.B1.bitboard()
-		position.board.whiteBishops = Square.C1.bitboard()
-
+		position.board.pieceBoards[(Color.WHITE, Piece.N)] = Square.B1.bitboard()
+		position.board.pieceBoards[(Color.WHITE, Piece.B)] = Square.C1.bitboard()
+		position.board.updateColorBoards()
 		moves = generateKingMoves(position)
 		expected = [
 			Move(Square.E1, Square.F1),
@@ -362,7 +367,7 @@ class RookMoveTests(unittest.TestCase):
 
 	def test_rookAttacks_A8Starting(self):
 		position = Position()
-		blockers = (WHITE_BOARD(position.board) | BLACK_BOARD(position.board)) ^ Square.A8.bitboard()
+		blockers = (position.board.whiteBoard | position.board.blackBoard) ^ Square.A8.bitboard()
 		sq = Square.A8
 		bbAttacks = rookAttacks(sq, blockers)
 		expected = Square.A7.bitboard() | Square.B8.bitboard()
@@ -390,7 +395,8 @@ class RookMoveTests(unittest.TestCase):
 
 	def test_wGenerateRookMoves_a2a4(self):
 		position = Position()
-		position.board.whitePawns = (SECOND_RANK ^ Square.A2.bitboard()) | Square.A4.bitboard()
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = (SECOND_RANK ^ Square.A2.bitboard()) | Square.A4.bitboard()
+		position.board.updateColorBoards()
 		moves = generateRookMoves(position)
 		expected = [
 			Move(Square.A1, Square.A2),
@@ -419,7 +425,7 @@ class RookMoveTests(unittest.TestCase):
 
 	def test_wGenerateRookMoves_NoRooksOnBoard(self):
 		position = Position()
-		position.board.whiteRooks = np.uint64(0)
+		position.board.pieceBoards[(Color.WHITE, Piece.R)] = np.uint64(0)
 		moves = generateRookMoves(position)
 		expected = []
 		
@@ -517,7 +523,8 @@ class BishopMoveTests(unittest.TestCase):
 
 	def test_wQueen_StartingBoardWithoutD2Pawn(self):
 		position = Position()
-		position.board.whitePawns = SECOND_RANK ^ Square.D2.bitboard()
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = SECOND_RANK ^ Square.D2.bitboard()
+		position.board.updateColorBoards()
 		moves = generateQueenMoves(position)
 		expected = [
 			Move(Square.D1, Square.D2),
@@ -531,7 +538,8 @@ class BishopMoveTests(unittest.TestCase):
 
 	def test_bQueen_StartingBoardWithoutD7Pawn(self):
 		position = Position()
-		position.board.blackPawns = SEVENTH_RANK ^ Square.D7.bitboard()
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = SEVENTH_RANK ^ Square.D7.bitboard()
+		position.board.updateColorBoards()
 		position.sideToMove = Color.BLACK
 		moves = generateQueenMoves(position)
 		expected = [
@@ -585,7 +593,8 @@ class MakeMoveTests(unittest.TestCase):
 		position.makeMove(move)
 
 		expected = Position()
-		expected.board.whitePawns = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard()
+		expected.board.pieceBoards[(Color.WHITE, Piece.P)] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard()
+		expected.board.updateColorBoards()
 		expected.sideToMove = Color.BLACK
 
 		self.assertEqual(position, expected)
@@ -615,9 +624,8 @@ class SequenceTests(unittest.TestCase):
 		for move in moves:
 			position.makeMove(move)
 
-		printBitboard(WHITE_BOARD(position.board))
 		generatedMoves = generateAllMoves(position)
-		print(generatedMoves)
+		#print(generatedMoves)
 		
 
 	

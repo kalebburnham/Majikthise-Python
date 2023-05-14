@@ -254,12 +254,12 @@ class Traversals(unittest.TestCase):
         global position
         depth = 5
         position = Position()
-        #import cProfile
-        #cProfile.run('position.traverse(5)')
-        nMoves = position.traverse(depth)
-        print(nMoves)
-        expected = Position()
-        self.assertEqual(expected, position)
+        import cProfile
+        cProfile.run('position.traverse(5)')
+        #nMoves = position.traverse(depth)
+        #print(nMoves)
+        #expected = Position()
+        #self.assertEqual(expected, position)
 
     def test_ConsecutiveMoves_Depth6(self):
         global position

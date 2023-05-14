@@ -23,13 +23,6 @@ H1_A8_ANTIDIAGONAL = np.uint64(0x0102040810204080)
 LIGHT_SQUARES = np.uint64(0x55AA55AA55AA55AA)
 DARK_SQUARES = np.uint64(0xAA55AA55AA55AA55)
 
-
-def WHITE_BOARD(b) -> np.uint64():
-	return (b.whitePawns | b.whiteKnights | b.whiteBishops | b.whiteRooks | b.whiteQueens | b.whiteKing)
-
-def BLACK_BOARD(b) -> np.uint64():
-	return (b.blackPawns | b.blackKnights | b.blackBishops | b.blackRooks | b.blackQueens | b.blackKing)
-
 def eastOne(b: np.uint64()) -> np.uint64():
 	return (b << np.uint64(1)) & ~A_FILE
 
