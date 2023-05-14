@@ -2,6 +2,7 @@ from bitboard import *
 from board import *
 from rays import RAYS
 from printer import *
+from ctypes import *
 
 # Knight moves
 def noNoEa(b: np.uint64()) -> np.uint64(): 
@@ -43,6 +44,9 @@ def soEa(b: np.uint64()) -> np.uint64():
 def northOne(b: np.uint64()) -> np.uint64():
 	return b << np.uint64(8)
 
+def northOne2(b: c_uint64):
+	return b.value << 8
+
 def southOne(b: np.uint64()) -> np.uint64():
 	return b >> np.uint64(8)
 
@@ -74,30 +78,59 @@ def wGenerateAllPawnMoves(position: Position):
 
 def wGeneratePawnPushMoves(position: Position) -> list:
 	board = position.board
-	toBoard: np.uint64() = northOne(board.pieceBoards[(Color.WHITE, Piece.P)]) & ~board.occupied
+	toBoard: np.uint64() = northOne(board.pieceBoards[(Color.WHITE, Piece.P)]) & ~board.occupied & ~EIGHTH_RANK
 
 	# Promotions are handled elsewhere, so pawns on the seventh rank are ignored.
-	eligiblePawns = southOne(toBoard) & ~SEVENTH_RANK
+	#eligiblePawns = southOne(toBoard) & ~SEVENTH_RANK
 
 	moves = []
+	while toBoard > 0:
+		destination = Square(BSF(toBoard))
+		origin = Square(destination.value - 8)
+		moves.append(Move(origin, destination))
+		toBoard ^= SQUARE_TO_BITBOARD[destination.value]
+
+	""" 
 	while eligiblePawns > 0:
 		origin = np.uint64(BSF(eligiblePawns))
-		eligiblePawns ^= np.uint64(0x01) << origin
+		eligiblePawns ^= SQUARE_TO_BITBOARD[origin]
+		#eligiblePawns ^= np.uint64(0x01) << origin
 
 		destination =  np.uint64(BSF(toBoard))
-		toBoard ^= np.uint64(0x01) << destination
+		toBoard ^= SQUARE_TO_BITBOARD[destination]
+		#toBoard ^= np.uint64(0x01) << destination
 
-		moves.append(Move(origin=Square(origin), destination=Square(destination)))
+		moves.append(Move(origin=Square(origin), destination=Square(destination))) """
 
 	return moves
 
 def bGeneratePawnPushMoves(position: Position) -> list:
-	board = position.board
-	toBoard: np.uint64() = southOne(board.pieceBoards[(Color.BLACK, Piece.P)]) & ~board.occupied
-
+	#board = position.board
+	#toBoard: np.uint64() = southOne(board.pieceBoards[(Color.BLACK, Piece.P)]) & ~board.occupied & ~FIRST_RANK
 	# Promotions are handled elsewhere, so pawns on the second rank are ignored.
-	eligiblePawns = northOne(toBoard) & ~SECOND_RANK
+	#eligiblePawns = northOne(toBoard) & ~SECOND_RANK
+	
+	
+	moves = []
+	"""
+	while toBoard > 0:
+		destination = Square(BSF(toBoard))
+		origin = Square(destination.value + 8)
+		moves.append(Move(origin, destination))
+		##print(SQUARE_TO_BITBOARD[destination.value])
+		
+		toBoard ^= SQUARE_TO_BITBOARD[destination.value]
+	"""
+	for i in reversed(range(8, 56)):
+		if position.board.pieceLocations[i] != Piece.P:
+			continue
 
+		if SQUARE_TO_BITBOARD[i] & position.board.pieceBoards[(Color.BLACK, Piece.P)]:
+			if position.board.pieceLocations[i-8] == None:
+				moves.append(Move(Square(i), Square(i-8)))
+
+
+	"""
 	moves = []
 	while eligiblePawns > 0:
 		origin = np.uint64(BSF(eligiblePawns))
@@ -106,7 +139,7 @@ def bGeneratePawnPushMoves(position: Position) -> list:
 		destination =  np.uint64(BSF(toBoard))
 		toBoard ^= np.uint64(0x01) << destination
 
-		moves.append(Move(origin=Square(origin), destination=Square(destination)))
+		moves.append(Move(origin=Square(origin), destination=Square(destination)))"""
 
 	return moves
 

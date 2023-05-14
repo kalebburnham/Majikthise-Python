@@ -10,6 +10,10 @@ from rays import *
 
 class MovegenTests(unittest.TestCase):
 
+	@classmethod
+	def setUpClass(cls):
+		initBitboards()
+
 	def test_singularize_0b0000(self):
 		b = np.uint64(0b0000)
 		self.assertCountEqual(singularize(b), [])
@@ -23,6 +27,10 @@ class MovegenTests(unittest.TestCase):
 		self.assertCountEqual(singularize(b), [np.uint64(0b0100), np.uint64(0b0001)])
 
 class PawnMoveTests(unittest.TestCase):
+
+	@classmethod
+	def setUpClass(cls):
+		initBitboards()
 
 	def test_wPawnPush_noBlockers(self):
 		'''
@@ -161,6 +169,10 @@ class PawnMoveTests(unittest.TestCase):
 		return
 class KnightMoveTests(unittest.TestCase):
 
+	@classmethod
+	def setUpClass(cls):
+		initBitboards()
+
 	def test_knightAttacks_CenterOfBoard(self):
 		'''
 		Square: E5
@@ -291,6 +303,11 @@ class KnightMoveTests(unittest.TestCase):
 		self.assertCountEqual(moves, expected)
 
 class KingMoveTests(unittest.TestCase):
+
+	@classmethod
+	def setUpClass(cls):
+		initBitboards()
+
 	def test_wGenerateKingMoves_StartingPosition(self):
 		position = Position()
 		moves = generateKingMoves(position)
@@ -356,6 +373,7 @@ class RookMoveTests(unittest.TestCase):
 	@classmethod
 	def setUpClass(cls):
 		initRays()
+		initBitboards()
 
 	def test_rookAttacks_A1(self):
 		blockers = np.uint64(0)
@@ -450,6 +468,7 @@ class BishopMoveTests(unittest.TestCase):
 	@classmethod
 	def setUpClass(cls):
 		initRays()
+		initBitboards()
 
 	def test_wGenerateBishopMoves_StartingBoard(self):
 		position = Position()
@@ -586,6 +605,10 @@ class BishopMoveTests(unittest.TestCase):
 
 class MakeMoveTests(unittest.TestCase):
 
+	@classmethod
+	def setUpClass(cls):
+		initBitboards()
+
 	def test_makeMove_e2e4(self):
 		position = Position()
 		move = Move(Square.E2, Square.E4)
@@ -621,6 +644,10 @@ class MakeMoveTests(unittest.TestCase):
 
 class SequenceTests(unittest.TestCase):
 
+	@classmethod
+	def setUpClass(cls):
+		initBitboards()
+
 	def test_Sequence1(self):
 		position = Position()
 		moves = [Move(Square.B1, Square.C3), Move(Square.E7, Square.E6)]
@@ -633,9 +660,55 @@ class SequenceTests(unittest.TestCase):
 
 class PieceLocationTests(unittest.TestCase):
 
+	@classmethod
+	def setUpClass(cls):
+		initBitboards()
+
 	def test_PieceLocation_1e4(self):
 		position = Position()
 		position.makeMove(Move(Square.E2, Square.E4, flag=0x01))
+
+
+def repeatNorthOne():
+		from random import randint
+		for _ in range(3000000):
+			northOne(np.uint64(randint(0, 64)))
+
+def repeatNorthOne2():
+	from random import randint
+	for _ in range(3000000):
+		northOne2(c_uint64(randint(0, 64)))
+
+class IntBitShiftSpeedTest(unittest.TestCase):
+
+	def test_NorthOne(self):
+		import cProfile
+		cProfile.run('repeatNorthOne()')
+
+	def test_NorthOne2(self):
+		import cProfile
+		cProfile.run('repeatNorthOne2()')
+
+
+def repeatBSF():
+	from random import randint
+	for _ in range(10000000):
+		BSF(np.uint64(randint(0, 2**63)))
+	
+def repeatBSF2():
+	from random import randint
+	for _ in range(10000000):
+		BSF2(c_uint64(randint(0, 2**63)).value)
+
+class BSFTests(unittest.TestCase):
+	def test_BSF(self):
+		import cProfile
+		cProfile.run('repeatBSF()')
+
+
+	def test_BSF2(self):
+		import cProfile
+		cProfile.run('repeatBSF2()')
 
 if __name__ == '__main__':
 	unittest.main()

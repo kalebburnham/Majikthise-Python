@@ -238,6 +238,10 @@ def runMultipleFix():
 
 class Traversals(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        initBitboards()
+
     def test_ConsecutiveMoves_Depth3(self):
         global position
         depth = 5

@@ -96,7 +96,7 @@ class Square(IntEnum):
 	NONE = 64
 
 	def bitboard(self):
-		return np.uint64(0x01) << np.uint64(self.value)			
+		return SQUARE_TO_BITBOARD[self.value]		
 
 	def isEmpty(self, board: 'CBoard'):
 		# Returns true if no white or black pieces occupy the square.

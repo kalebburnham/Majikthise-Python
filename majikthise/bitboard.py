@@ -1,4 +1,5 @@
 import numpy as np
+from ctypes import c_uint64
 
 A_FILE = np.uint64(0x0101010101010101)
 B_FILE = np.uint64(0x0202020202020202)
@@ -22,6 +23,15 @@ A1_H8_DIAGONAL = np.uint64(0x8040201008040201)
 H1_A8_ANTIDIAGONAL = np.uint64(0x0102040810204080)
 LIGHT_SQUARES = np.uint64(0x55AA55AA55AA55AA)
 DARK_SQUARES = np.uint64(0xAA55AA55AA55AA55)
+
+SQUARE_TO_BITBOARD = [np.uint64(0)] * 64
+BITBOARD_TO_SQUARE = {}
+
+def initBitboards():
+	# Provides access to a bitboard array to quickly switch between square number and bitboard representation.
+	for i in range(64):
+		SQUARE_TO_BITBOARD[i] = np.uint64(0x01) << np.uint64(i)
+		BITBOARD_TO_SQUARE[np.uint64(0x01)] = i
 
 def eastOne(b: np.uint64()) -> np.uint64():
 	return (b << np.uint64(1)) & ~A_FILE
@@ -69,6 +79,21 @@ def BSF(b: np.uint64()) -> int:
 	debruijn64 = np.uint64(0x03f79d71b4cb0a89)
 	#assert b != 0 # Keeping the assert doubles the cost of the function from 1.5 to 3 nanoseconds.
 	return bsf_index[((b & -b) * debruijn64) >> np.uint64(58)]
+
+
+bsf2_index = [
+	0, 47,  1, 56, 48, 27,  2, 60,
+   57, 49, 41, 37, 28, 16,  3, 61,
+   54, 58, 35, 52, 50, 42, 21, 44,
+   38, 32, 29, 23, 17, 11,  4, 62,
+   46, 55, 26, 59, 40, 36, 15, 53,
+   34, 51, 20, 43, 31, 22, 10, 45,
+   25, 39, 14, 33, 19, 30,  9, 24,
+   13, 18,  8, 12,  7,  6,  5, 63
+]
+def BSF2(b: int):
+	debruijn64 = 0x03f79d71b4cb0a89
+	return bsf_index[c_uint64((b ^ (b-1)) * debruijn64).value  >> 58]
 
 bsr_index = [0, 47,  1, 56, 48, 27,  2, 60,
    57, 49, 41, 37, 28, 16,  3, 61,
