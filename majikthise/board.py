@@ -100,7 +100,7 @@ class Square(IntEnum):
 
 	def isEmpty(self, board: 'CBoard'):
 		# Returns true if no white or black pieces occupy the square.
-		return not bool(self.bitboard() & (board.whiteBoard | board.blackBoard))
+		return not bool(self.bitboard() & board.occupied)
 
   #SQUARE_NB = 64
 
@@ -212,10 +212,14 @@ class CBoard:
 			(Color.BLACK, Piece.Q): self.fen.blackQueens(),
 			(Color.BLACK, Piece.K): self.fen.blackKing()
 		}
+
+		self.pieceLocations = [None] * 64
 	
 		self.whiteBoard = None
 		self.blackBoard = None
+		self.occupied = None
 		self.updateColorBoards()
+		self.onInitUpdatePieceLocations()
 
 
 	def __eq__(self, other: 'CBoard'):
@@ -246,62 +250,64 @@ class CBoard:
 		return POPCOUNT(self.isolanis(sideToMove))
 		
 	def blockedPawnCount(self, sideToMove: Color) -> int:
-		blockers = self.whiteBoard | self.blackBoard
-
 		if sideToMove == Color.WHITE:
-			return POPCOUNT(northOne(self.pieceBoards[(Color.WHITE, Piece.P)]) & blockers)
+			return POPCOUNT(northOne(self.pieceBoards[(Color.WHITE, Piece.P)]) & self.occupied)
 		else:
-			return POPCOUNT(southOne(self.pieceBoards[(Color.BLACK, Piece.P)]) & blockers)
+			return POPCOUNT(southOne(self.pieceBoards[(Color.BLACK, Piece.P)]) & self.occupied)
 
-	def makeMove(self, move: 'Move'):
+	def makeMove(self, move: 'Move', color: Color):
 		if move.flag == 0x04:
-			self.removePiece(move.destination.bitboard())
+			# Remove the captured piece.
+			# Add color and piece type to this call. removePiece is one of the slowest functions due to branching.
+			self.removePiece(~color, move.capturedPieceType, move.destination.bitboard())
 		# TODO Handle en passant and promotions and double pawn pushes
 
-		color, piece = self.removePiece(move.origin.bitboard())
-		self.putPiece(piece, color, move.destination)
+		movingPiece = self.pieceTypeAtSquare(move.origin)
+		self.removePiece(color, movingPiece, move.origin.bitboard())
+		self.putPiece(movingPiece, color, move.destination)
 
 		if move.flag == 0x02:
 			# King Castle. Move the rook. Reset castling flags
 			if color == Color.WHITE:
-				_, _ = self.removePiece(Square.H1.bitboard())
+				self.removePiece(color, Piece.R, Square.H1.bitboard())
 				self.putPiece(Piece.R, Color.WHITE, Square.F1)
 			else:
-				_, _ = self.removePiece(Square.H8.bitboard())
+				self.removePiece(color, Piece.R, Square.H8.bitboard())
 				self.putPiece(Piece.R, Color.BLACK, Square.F8)
 
 		if move.flag == 0x03:
 			# Queen Castle. Move the rook.
 			if color == Color.WHITE:
-				_, _ = self.removePiece(Square.A1.bitboard())
+				self.removePiece(color, Piece.R, Square.A1.bitboard())
 				self.putPiece(Piece.R, Color.WHITE, Square.D1)
 			else:
-				_, _ = self.removePiece(Square.A8.bitboard())
+				self.removePiece(color, Piece.R, Square.A8.bitboard())
 				self.putPiece(Piece.R, Color.BLACK, Square.D8)
 
 		self.updateColorBoards()
 		
 
-	def unmakeMove(self, move: 'Move'):
-		color, piece = self.removePiece(move.destination.bitboard())
-		self.putPiece(piece, color, move.origin)
+	def unmakeMove(self, move: 'Move', color: Color):
+		movingPiece = self.pieceTypeAtSquare(move.destination)
+		self.removePiece(color, movingPiece, move.destination.bitboard())
+		self.putPiece(movingPiece, color, move.origin)
 
 		if move.flag == 0x02:
 			# King Castle. Put the rook back.
 			if color == Color.WHITE:
-				_, _ = self.removePiece(Square.F1.bitboard())
+				self.removePiece(color, Piece.R, Square.F1.bitboard())
 				self.putPiece(Piece.R, Color.WHITE, Square.H1)
 			else:
-				_, _ = self.removePiece(Square.F8.bitboard())
+				self.removePiece(color, Piece.R, Square.F8.bitboard())
 				self.putPiece(Piece.R, Color.BLACK, Square.H8)
 		
 		if move.flag == 0x03:
 			# Queen Castle. Put the rook back.
 			if color == Color.WHITE:
-				_, _ = self.removePiece(Square.D1.bitboard())
+				self.removePiece(color, Piece.R, Square.D1.bitboard())
 				self.putPiece(Piece.R, Color.WHITE, Square.A1)
 			else:
-				_, _ = self.removePiece(Square.D8.bitboard())
+				self.removePiece(color, Piece.R, Square.D8.bitboard())
 				self.putPiece(Piece.R, Color.BLACK, Square.A8)
 
 		if move.flag == 0x04:
@@ -310,8 +316,12 @@ class CBoard:
 
 		self.updateColorBoards()
 		
-	def removePiece(self, bbSquare):
-		if bbSquare & self.pieceBoards[(Color.WHITE, Piece.P)]:
+	def removePiece(self, color: Color, piece: Piece, bbSquare):
+		self.pieceBoards[(color, piece)] = self.pieceBoards[(color, piece)] ^ bbSquare
+		self.pieceLocations[BSF(bbSquare)] = None
+		
+
+		""" if bbSquare & self.pieceBoards[(Color.WHITE, Piece.P)]:
 			self.pieceBoards[(Color.WHITE, Piece.P)] = self.pieceBoards[(Color.WHITE, Piece.P)] ^ bbSquare
 			return Color.WHITE, Piece.P
 		elif bbSquare & self.pieceBoards[(Color.WHITE, Piece.B)]:
@@ -349,32 +359,28 @@ class CBoard:
 			return Color.BLACK, Piece.K
 
 		from printer import printBitboard
-		raise Exception(f"Could not remove piece. {bbSquare}")
+		raise Exception(f"Could not remove piece. {bbSquare}") """
 
 	def putPiece(self, piece: Piece, color: Color, square: Square):
 		self.pieceBoards[(color, piece)] |= square.bitboard()
+		self.pieceLocations[square.value] = piece
 
 	def pieceTypeAtSquare(self, square: Square):
-		piece: Piece = None
-
-		if (self.pieceBoards[(Color.WHITE, Piece.P)] | self.pieceBoards[(Color.BLACK, Piece.P)]) & square.bitboard():
-			piece = Piece.P
-		elif (self.pieceBoards[(Color.WHITE, Piece.N)] | self.pieceBoards[(Color.BLACK, Piece.N)]) & square.bitboard():
-			piece = Piece.N
-		elif (self.pieceBoards[(Color.WHITE, Piece.B)] | self.pieceBoards[(Color.BLACK, Piece.B)]) & square.bitboard():
-			piece = Piece.B
-		elif (self.pieceBoards[(Color.WHITE, Piece.R)] | self.pieceBoards[(Color.BLACK, Piece.R)]) & square.bitboard():
-			piece = Piece.R
-		elif (self.pieceBoards[(Color.WHITE, Piece.Q)] | self.pieceBoards[(Color.BLACK, Piece.Q)]) & square.bitboard():
-			piece = Piece.Q
-		elif (self.pieceBoards[(Color.WHITE, Piece.K)] | self.pieceBoards[(Color.BLACK, Piece.K)]) & square.bitboard():
-			piece = Piece.K
-
-		return piece
+		return self.pieceLocations[square.value]
 
 	def updateColorBoards(self):
 		self.whiteBoard = self.pieceBoards[(Color.WHITE, Piece.P)] | self.pieceBoards[(Color.WHITE, Piece.N)] | self.pieceBoards[(Color.WHITE, Piece.B)] | self.pieceBoards[(Color.WHITE, Piece.R)] | self.pieceBoards[(Color.WHITE, Piece.Q)] | self.pieceBoards[(Color.WHITE, Piece.K)]
 		self.blackBoard = self.pieceBoards[(Color.BLACK, Piece.P)] | self.pieceBoards[(Color.BLACK, Piece.N)] | self.pieceBoards[(Color.BLACK, Piece.B)] | self.pieceBoards[(Color.BLACK, Piece.R)] | self.pieceBoards[(Color.BLACK, Piece.Q)] | self.pieceBoards[(Color.BLACK, Piece.K)]
+		self.occupied = self.whiteBoard | self.blackBoard
+
+	def onInitUpdatePieceLocations(self):
+		for color, pieceType in self.pieceBoards:
+			pieceBitboard = deepcopy(self.pieceBoards[(color, pieceType)])
+			while pieceBitboard:
+				squareIdx = BSF(pieceBitboard)
+				self.pieceLocations[squareIdx] = pieceType
+				pieceBitboard ^= np.uint64(0x01) << np.uint64(squareIdx)
+
 
 class Position:
 	def __init__(self, fen=None, debug=False):
@@ -438,7 +444,7 @@ class Position:
 			file = open("Position_log.txt", "a")
 			file.write(f'{self.sideToMove} MAKE MOVE {move} SEQUENCE {self.moveSequence}\n')
 			file.close()
-		self.board.makeMove(move)
+		self.board.makeMove(move, self.sideToMove)
 		
 		# TODO Update castling flags when king or rook moves.
 
@@ -463,7 +469,7 @@ class Position:
 			file = open("Position_log.txt", "a")
 			file.write(f'{self.sideToMove} UNMAKE MOVE {move}\n')
 			file.close()
-		self.board.unmakeMove(move)
+		self.board.unmakeMove(move, ~self.sideToMove)
 		self.moveSequence.pop()
 
 		# If castling, update castle flags.

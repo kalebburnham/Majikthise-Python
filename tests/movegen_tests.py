@@ -225,7 +225,6 @@ class KnightMoveTests(unittest.TestCase):
 		position.board.pieceBoards[(Color.BLACK, Piece.P)] = np.uint64(0x00E7000810000000) # E4 and D5
 		position.board.updateColorBoards()
 		moves = generateKnightMoves(position)
-		print(moves)
 
 		expected = [
 			Move(origin=Square.C3, destination=Square.B1),
@@ -597,6 +596,8 @@ class MakeMoveTests(unittest.TestCase):
 		expected.board.updateColorBoards()
 		expected.sideToMove = Color.BLACK
 
+		
+
 		self.assertEqual(position, expected)
 
 	def test_makeMove_e4xd5(self):
@@ -605,6 +606,8 @@ class MakeMoveTests(unittest.TestCase):
 		position.makeMove(Move(Square.E4, Square.D5, flag=0x04, capturedPieceType=Piece.P))
 
 		expected = Position('rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1')
+		expected.sideToMove = Color.BLACK
+
 		self.assertEqual(position, expected)
 
 	def test_unmakeMove_e4xd5(self):
@@ -628,7 +631,11 @@ class SequenceTests(unittest.TestCase):
 		#print(generatedMoves)
 		
 
-	
+class PieceLocationTests(unittest.TestCase):
+
+	def test_PieceLocation_1e4(self):
+		position = Position()
+		position.makeMove(Move(Square.E2, Square.E4, flag=0x01))
 
 if __name__ == '__main__':
 	unittest.main()

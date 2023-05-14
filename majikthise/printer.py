@@ -1,6 +1,6 @@
 import numpy as np
 
-from board import CBoard
+from board import CBoard, Position
 
 def printBitboard(bitboard: np.uint64()):
 	toPrint = ['\n']
@@ -12,6 +12,27 @@ def printBitboard(bitboard: np.uint64()):
 	print(''.join(toPrint))
 
 def printCBoard(board: CBoard):
-	whiteBoard = board.whitePawns | board.whiteKnights | board.whiteBishops | board.whiteRooks | board.whiteQueens | board.whiteKing
-	blackBoard = board.blackPawns | board.blackKnights | board.blackBishops | board.blackRooks | board.blackQueens | board.blackKing
-	printBitboard(whiteBoard | blackBoard)
+	printBitboard(board.whiteBoard | board.blackBoard)
+
+def printCBoardDiff(first: CBoard, second: CBoard):
+	if first.whiteBoard != second.whiteBoard:
+		print("The difference is in the white board.")
+
+	if first.blackBoard != second.blackBoard:
+		print("The difference is in the black board.")
+
+	if first.pieceBoards != second.pieceBoards:
+		print("The difference is in the piece boards. If you loaded the position by FEN, did you forget to set sideToMove?")
+
+def printPositionDiff(first: Position, second: Position):
+	if first.board != second.board:
+		print("The difference is in the boards")
+	
+	if first.sideToMove != second.sideToMove:
+		print("The difference is in the side to move.")
+
+	if (first.bkCastle != second.bkCastle) or (first.bqCastle != second.bqCastle):
+		print("The difference is in the black castling rules.")
+
+	if (first.wkCastle != second.wkCastle) or (first.wqCastle != second.wqCastle):
+		print("The difference is in the white castling rules.")

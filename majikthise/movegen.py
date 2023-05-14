@@ -74,8 +74,7 @@ def wGenerateAllPawnMoves(position: Position):
 
 def wGeneratePawnPushMoves(position: Position) -> list:
 	board = position.board
-	occupied: np.uint64() = board.whiteBoard | board.blackBoard
-	toBoard: np.uint64() = northOne(board.pieceBoards[(Color.WHITE, Piece.P)]) & ~occupied
+	toBoard: np.uint64() = northOne(board.pieceBoards[(Color.WHITE, Piece.P)]) & ~board.occupied
 
 	# Promotions are handled elsewhere, so pawns on the seventh rank are ignored.
 	eligiblePawns = southOne(toBoard) & ~SEVENTH_RANK
@@ -94,8 +93,7 @@ def wGeneratePawnPushMoves(position: Position) -> list:
 
 def bGeneratePawnPushMoves(position: Position) -> list:
 	board = position.board
-	occupied: np.uint64() = board.whiteBoard | board.blackBoard
-	toBoard: np.uint64() = southOne(board.pieceBoards[(Color.BLACK, Piece.P)]) & ~occupied
+	toBoard: np.uint64() = southOne(board.pieceBoards[(Color.BLACK, Piece.P)]) & ~board.occupied
 
 	# Promotions are handled elsewhere, so pawns on the second rank are ignored.
 	eligiblePawns = northOne(toBoard) & ~SECOND_RANK
@@ -114,14 +112,13 @@ def bGeneratePawnPushMoves(position: Position) -> list:
 
 def wGenerateDoublePawnPushMoves(position: Position) -> list:
 	board = position.board
-	occupied = board.whiteBoard | board.blackBoard
-	toBoard = northOne(northOne(SECOND_RANK & board.pieceBoards[(Color.WHITE, Piece.P)]) & ~occupied) & ~occupied
+	toBoard = northOne(northOne(SECOND_RANK & board.pieceBoards[(Color.WHITE, Piece.P)]) & ~board.occupied) & ~board.occupied
 	eligiblePawns = southOne(southOne(toBoard))
 
 	fromSingles = singularize(eligiblePawns)
 	toSingles = singularize(toBoard)
 
-	if (Square.A2.bitboard() | position.board.pieceBoards[(Color.WHITE, Piece.P)]) and not (Square.A3.bitboard() | Square.A4.bitboard()) & occupied:
+	if (Square.A2.bitboard() | position.board.pieceBoards[(Color.WHITE, Piece.P)]) and not (Square.A3.bitboard() | Square.A4.bitboard()) & board.occupied:
 		pass
 
 	moves = []
@@ -138,8 +135,7 @@ def wGenerateDoublePawnPushMoves(position: Position) -> list:
 
 def bGenerateDoublePawnPushMoves(position: Position) -> list:
 	board = position.board
-	occupied = board.whiteBoard | board.blackBoard
-	toBoard = southOne(southOne(SECOND_RANK & board.pieceBoards[(Color.BLACK, Piece.P)]) & ~occupied) & ~occupied
+	toBoard = southOne(southOne(SECOND_RANK & board.pieceBoards[(Color.BLACK, Piece.P)]) & ~board.occupied) & ~board.occupied
 	eligiblePawns = northOne(northOne(toBoard))
 
 	moves = []
@@ -340,7 +336,7 @@ def generateRookMoves(position: Position):
 		sqOrigin = Square(BSF(rooks))
 		rooks ^= sqOrigin.bitboard()
 
-		blockers = (position.board.whiteBoard | position.board.blackBoard) ^ sqOrigin.bitboard()
+		blockers = position.board.occupied ^ sqOrigin.bitboard()
 		bbDestinations = rookAttacks(sqOrigin, blockers)
 		while bbDestinations:
 			sqDestination = Square(BSF(bbDestinations))
@@ -391,7 +387,7 @@ def generateBishopMoves(position: Position):
 		sqOrigin = Square(BSF(bishops))
 		bishops ^= sqOrigin.bitboard()
 
-		blockers = (position.board.whiteBoard | position.board.blackBoard) ^ sqOrigin.bitboard()
+		blockers = position.board.occupied ^ sqOrigin.bitboard()
 		bbDestinations = bishopAttacks(sqOrigin, blockers)
 
 		while bbDestinations:
@@ -418,7 +414,7 @@ def generateQueenMoves(position):
 	while queens:
 		sqOrigin = Square(BSF(queens))
 		queens ^= sqOrigin.bitboard()
-		blockers = (position.board.whiteBoard | position.board.blackBoard) ^ sqOrigin.bitboard()
+		blockers = position.board.occupied ^ sqOrigin.bitboard()
 		bbDestinations = bishopAttacks(sqOrigin, blockers) | rookAttacks(sqOrigin, blockers)
 		while bbDestinations:
 			sqDestination = Square(BSF(bbDestinations))
