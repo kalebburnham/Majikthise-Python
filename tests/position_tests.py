@@ -19,7 +19,7 @@ class PositionTests(unittest.TestCase):
         position = Position()
         position.board.whitePawns = (SECOND_RANK & ~Square.E2.bitboard()) | Square.D5.bitboard()
         position.board.blackPawns = (SEVENTH_RANK & ~Square.D7.bitboard())
-        position.sideToMove = Color.BLACK
+        position.sideToMove = BLACK
 
         # White has 2 doubled pawns and is up a pawn. Score is still even.
         self.assertEqual(position.score(), 0)
@@ -33,7 +33,7 @@ class MakeMoveTests(unittest.TestCase):
     def test_MakeMoveOnBoard_e4(self):
         position = Position()
         move = Move(Square.E2, Square.E4)
-        position.board.makeMove(move, Color.WHITE)
+        position.board.makeMove(move, WHITE)
 
         expected = CBoard('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1')
         self.assertEqual(position.board, expected)
@@ -41,8 +41,8 @@ class MakeMoveTests(unittest.TestCase):
     def test_BoardMakeMove_e4(self):
         position = Position()
         move = Move(Square.E2, Square.E4)
-        position.board.makeMove(move, Color.WHITE)
-        position.board.unmakeMove(move, Color.WHITE)
+        position.board.makeMove(move, WHITE)
+        position.board.unmakeMove(move, WHITE)
 
         expected = CBoard('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
         self.assertEqual(position.board, expected)
@@ -51,8 +51,8 @@ class MakeMoveTests(unittest.TestCase):
         position = Position()
         whiteMove = Move(Square.E2, Square.E4)
         blackMove = Move(Square.E7, Square.E5)
-        position.board.makeMove(whiteMove, Color.WHITE)
-        position.board.makeMove(blackMove, Color.BLACK)
+        position.board.makeMove(whiteMove, WHITE)
+        position.board.makeMove(blackMove, BLACK)
 
         expected = CBoard('rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1')
         self.assertEqual(position.board, expected)
@@ -61,12 +61,12 @@ class MakeMoveTests(unittest.TestCase):
         position = Position()
         whiteMove = Move(Square.E2, Square.E4)
         blackMove = Move(Square.E7, Square.E5)
-        position.board.makeMove(whiteMove, Color.WHITE)
-        position.board.makeMove(blackMove, Color.BLACK)
+        position.board.makeMove(whiteMove, WHITE)
+        position.board.makeMove(blackMove, BLACK)
 
         # An issue exists here. Unmake does not change the pieceBoards
-        position.board.unmakeMove(blackMove, Color.BLACK)
-        position.board.unmakeMove(whiteMove, Color.WHITE)
+        position.board.unmakeMove(blackMove, BLACK)
+        position.board.unmakeMove(whiteMove, WHITE)
 
         expected = CBoard('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
         self.assertEqual(position.board, expected)
@@ -77,7 +77,7 @@ class MakeMoveTests(unittest.TestCase):
         position.makeMove(move)
 
         expected = Position('rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1')
-        expected.sideToMove = Color.BLACK
+        expected.sideToMove = BLACK
         self.assertEqual(position, expected)
 
     def test_PositionUnmakeMove_e4e5(self):
@@ -189,13 +189,13 @@ class MakeMoveTests(unittest.TestCase):
 
     def test_KnightCapturesPawn(self):
         position = Position('r1bqkbnr/pppppppp/n7/8/1P6/P7/2PPPPPP/RNBQKBNR b KQkq - 0 1')
-        position.sideToMove = Color.BLACK
+        position.sideToMove = BLACK
         
         move = Move(Square.A6, Square.B4, flag=0x04, capturedPieceType=PAWN)
         position.makeMove(move)
         position.unmakeMove(move)
         expected = Position('r1bqkbnr/pppppppp/n7/8/1P6/P7/2PPPPPP/RNBQKBNR b KQkq - 0 1')
-        expected.sideToMove = Color.BLACK
+        expected.sideToMove = BLACK
         printCBoardDiff(position.board, expected.board)
         printBitboard(position.board.blackBoard)
         printBitboard(expected.board.blackBoard)

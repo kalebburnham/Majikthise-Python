@@ -58,7 +58,7 @@ class BitboardTests(unittest.TestCase):
 
 	def test_generateBoard(self):
 		b = CBoard()
-		self.assertEqual(b.pieceBoards[(Color.WHITE, Piece.P)], SECOND_RANK)
+		self.assertEqual(b.pieceBoards[WHITE][PAWN], SECOND_RANK)
 
 	def test_northFill(self):
 		b = Square.E5.bitboard()
@@ -99,49 +99,49 @@ class CBoardTests(unittest.TestCase):
 		
 	def test_DoubledPawns_StartingPosition(self):
 		position = Position()
-		self.assertEqual(position.board.doubledPawnCount(Color.WHITE), 0)
-		self.assertEqual(position.board.doubledPawnCount(Color.BLACK), 0)
+		self.assertEqual(position.board.doubledPawnCount(WHITE), 0)
+		self.assertEqual(position.board.doubledPawnCount(BLACK), 0)
 
 	def test_DoubledPawns_e3e2(self):
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] ^= Square.D2.bitboard()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] |= Square.E3.bitboard()
-		self.assertEqual(position.board.doubledPawnCount(Color.WHITE), 2)
+		position.board.pieceBoards[WHITE][PAWN] ^= Square.D2.bitboard()
+		position.board.pieceBoards[WHITE][PAWN] |= Square.E3.bitboard()
+		self.assertEqual(position.board.doubledPawnCount(WHITE), 2)
 
 	def test_DoubledPawns_Tripled(self):
 		position = Position('8/p7/p7/p7/8/8/8/8 w KQkq - 0 1')
-		self.assertEqual(position.board.doubledPawnCount(Color.BLACK), 3)
+		self.assertEqual(position.board.doubledPawnCount(BLACK), 3)
 
 	def test_DoubledPawns_AllOnSameFile(self):
 		position = Position('8/2P5/2P5/2P5/2P5/2P5/2P5/2P5 w KQkq - 0 1')
-		self.assertEqual(position.board.doubledPawnCount(Color.WHITE), 7)
+		self.assertEqual(position.board.doubledPawnCount(WHITE), 7)
 
 	def test_isolanis_white1(self):
 		b = CBoard()
-		b.pieceBoards[(Color.WHITE, Piece.P)] = Square.E5.bitboard()
-		self.assertEqual(b.isolatedPawnCount(Color.WHITE), 1)
-		self.assertEqual(b.isolanis(0), b.pieceBoards[(Color.WHITE, Piece.P)])
+		b.pieceBoards[WHITE][PAWN] = Square.E5.bitboard()
+		self.assertEqual(b.isolatedPawnCount(WHITE), 1)
+		self.assertEqual(b.isolanis(0), b.pieceBoards[WHITE][PAWN])
 
 	def test_isolanis_black2(self):
 		b = CBoard()
-		b.pieceBoards[(Color.BLACK, Piece.P)] = Square.E5.bitboard() | Square.H5.bitboard()
-		self.assertEqual(b.isolatedPawnCount(Color.BLACK), 2)
-		self.assertEqual(b.isolanis(1), b.pieceBoards[(Color.BLACK, Piece.P)])
+		b.pieceBoards[BLACK][PAWN] = Square.E5.bitboard() | Square.H5.bitboard()
+		self.assertEqual(b.isolatedPawnCount(BLACK), 2)
+		self.assertEqual(b.isolanis(1), b.pieceBoards[BLACK][PAWN])
 
 	def test_isolanis_startingPosition(self):
 		b = CBoard()
 		self.assertEqual(b.isolatedPawnCount(0), 0)
-		self.assertEqual(b.isolatedPawnCount(Color.BLACK), 0)
+		self.assertEqual(b.isolatedPawnCount(BLACK), 0)
 		
 	def test_isolanis_fourIsolanis(self):
 		b = CBoard()
-		b.pieceBoards[(Color.BLACK, Piece.P)] = Square.A7.bitboard() | Square.C7.bitboard() | \
+		b.pieceBoards[BLACK][PAWN] = Square.A7.bitboard() | Square.C7.bitboard() | \
 						Square.E7.bitboard() | Square.H7.bitboard()
 		self.assertEqual(b.isolatedPawnCount(1), 4)
 
 	def test_blockedPawns_e4e5(self):
 		b = CBoard()
-		b.pieceBoards[(Color.WHITE, Piece.P)] = Square.E4.bitboard() | Square.E5.bitboard()
+		b.pieceBoards[WHITE][PAWN] = Square.E4.bitboard() | Square.E5.bitboard()
 		b.updateColorBoards()
 		self.assertEqual(b.blockedPawnCount(0), 1)
 
@@ -152,15 +152,15 @@ class CBoardTests(unittest.TestCase):
 
 	def test_blockedPawns_a6a7(self):
 		b = CBoard()
-		b.pieceBoards[(Color.BLACK, Piece.P)] = Square.A6.bitboard() | Square.A7.bitboard()
+		b.pieceBoards[BLACK][PAWN] = Square.A6.bitboard() | Square.A7.bitboard()
 		b.updateColorBoards()
 		self.assertEqual(b.blockedPawnCount(1), 1)
 
 	def test_blockedPawns_AFile(self):
 		b = CBoard()
-		b.pieceBoards[(Color.WHITE, Piece.P)] = A_FILE & ~Square.A8.bitboard()
-		b.pieceBoards[(Color.BLACK, Piece.R)] = 0
-		b.pieceBoards[(Color.BLACK, Piece.P)] = 0
+		b.pieceBoards[WHITE][PAWN] = A_FILE & ~Square.A8.bitboard()
+		b.pieceBoards[BLACK][ROOK] = 0
+		b.pieceBoards[BLACK][PAWN] = 0
 		b.updateColorBoards()
 		self.assertEqual(b.blockedPawnCount(0), 6)
 

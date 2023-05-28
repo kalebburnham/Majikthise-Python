@@ -1,3 +1,6 @@
+# Cython directive
+# cython: profile=True
+
 from bitboard cimport *
 from board import *
 from rays import RAYS
@@ -82,7 +85,7 @@ def wGenerateAllPawnMoves(position: Position):
 
 def wGeneratePawnPushMoves(position: Position) -> list:
 	board = position.board
-	cdef size_t toBoard = northOne(board.pieceBoards[(WHITE, PAWN)]) & ~board.occupied & ~EIGHTH_RANK
+	cdef size_t toBoard = northOne(board.pieceBoards[WHITE][PAWN]) & ~board.occupied & ~EIGHTH_RANK
 
 	# Promotions are handled elsewhere, so pawns on the seventh rank are ignored.
 	#eligiblePawns = southOne(toBoard) & ~SEVENTH_RANK
@@ -110,7 +113,7 @@ def wGeneratePawnPushMoves(position: Position) -> list:
 
 def bGeneratePawnPushMoves(position: Position) -> list:
 	board = position.board
-	cdef size_t toBoard = southOne(board.pieceBoards[(BLACK, PAWN)]) & ~board.occupied & ~FIRST_RANK
+	cdef size_t toBoard = southOne(board.pieceBoards[BLACK][PAWN]) & ~board.occupied & ~FIRST_RANK
 	# Promotions are handled elsewhere, so pawns on the second rank are ignored.
 	#eligiblePawns = northOne(toBoard) & ~SECOND_RANK
 	
@@ -129,7 +132,7 @@ def bGeneratePawnPushMoves(position: Position) -> list:
 		if position.board.pieceLocations[i] != PAWN:
 			continue
 
-		if SQUARE_TO_BITBOARD[i] & position.board.pieceBoards[(BLACK, PAWN)]:
+		if SQUARE_TO_BITBOARD[i] & position.board.pieceBoards[BLACK][PAWN]:
 			if position.board.pieceLocations[i-8] == None:
 				moves.append(Move(Square(i), Square(i-8)))
 
@@ -152,13 +155,13 @@ def bGeneratePawnPushMoves(position: Position) -> list:
 
 def wGenerateDoublePawnPushMoves(position: Position) -> list:
 	board = position.board
-	toBoard = northOne(northOne(SECOND_RANK & board.pieceBoards[(WHITE, PAWN)]) & ~board.occupied) & ~board.occupied
+	toBoard = northOne(northOne(SECOND_RANK & board.pieceBoards[WHITE][PAWN]) & ~board.occupied) & ~board.occupied
 	eligiblePawns = southOne(southOne(toBoard))
 
 	fromSingles = singularize(eligiblePawns)
 	toSingles = singularize(toBoard)
 
-	if (Square.A2.bitboard() | position.board.pieceBoards[(WHITE, PAWN)]) and not (Square.A3.bitboard() | Square.A4.bitboard()) & board.occupied:
+	if (Square.A2.bitboard() | position.board.pieceBoards[WHITE][PAWN]) and not (Square.A3.bitboard() | Square.A4.bitboard()) & board.occupied:
 		pass
 
 	moves = []
@@ -175,7 +178,7 @@ def wGenerateDoublePawnPushMoves(position: Position) -> list:
 
 def bGenerateDoublePawnPushMoves(position: Position) -> list:
 	board = position.board
-	toBoard = southOne(southOne(SECOND_RANK & board.pieceBoards[(BLACK, PAWN)]) & ~board.occupied) & ~board.occupied
+	toBoard = southOne(southOne(SECOND_RANK & board.pieceBoards[BLACK][PAWN]) & ~board.occupied) & ~board.occupied
 	eligiblePawns = northOne(northOne(toBoard))
 
 	moves = []
@@ -194,7 +197,7 @@ def wGeneratePawnCaptures(position: Position) -> list:
 	board = position.board
 	
 	# Eigth-rank pawn captures are handled in wGeneratePromotionAndCaptureMoves
-	singlePawns = singularize(board.pieceBoards[(WHITE, PAWN)] & ~SEVENTH_RANK)
+	singlePawns = singularize(board.pieceBoards[WHITE][PAWN] & ~SEVENTH_RANK)
 
 	moves = []
 	for i in range(len(singlePawns)):
@@ -216,7 +219,7 @@ def bGeneratePawnCaptures(position: Position) -> list:
 	board = position.board
 
 	# First-rank pawn captures are handled in bGeneratePromotionAndCaptureMoves
-	singlePawns = singularize(board.pieceBoards[(BLACK, PAWN)] & ~SECOND_RANK)
+	singlePawns = singularize(board.pieceBoards[BLACK][PAWN] & ~SECOND_RANK)
 	moves = []
 	for i in range(len(singlePawns)):
 		if soWe(singlePawns[i]) & board.whiteBoard:
@@ -254,10 +257,10 @@ cpdef list knightMoves(size_t board):
 	return moves
 
 cpdef list generateKnightMoves(position: Position):
-	if not position.board.pieceBoards[(WHITE, KNIGHT)] and position.sideToMove == BLACK:
+	if not position.board.pieceBoards[WHITE][KNIGHT] and position.sideToMove == BLACK:
 		return []
 
-	if not position.board.pieceBoards[(BLACK, KNIGHT)] and position.sideToMove == BLACK:
+	if not position.board.pieceBoards[BLACK][KNIGHT] and position.sideToMove == BLACK:
 		return []
 
 	cdef size_t origin
@@ -265,7 +268,7 @@ cpdef list generateKnightMoves(position: Position):
 	cdef size_t one
 
 	# Make copy to avoid modifying the actual board.
-	knights = position.board.pieceBoards[(WHITE, KNIGHT)] if position.sideToMove == WHITE else position.board.pieceBoards[(BLACK, KNIGHT)]
+	knights = position.board.pieceBoards[WHITE][KNIGHT] if position.sideToMove == WHITE else position.board.pieceBoards[BLACK][KNIGHT]
 	pseudolegalMoves = []
 	loop = 0
 	while knights > 0:
@@ -309,9 +312,9 @@ def generateKingMoves(position: Position):
 	This method does not check for legality of a move.
 	'''
 	if position.sideToMove == WHITE:
-		sqOrigin = Square(BSF(position.board.pieceBoards[(WHITE, KING)]))
+		sqOrigin = Square(BSF(position.board.pieceBoards[WHITE][KING]))
 	else:
-		sqOrigin = Square(BSF(position.board.pieceBoards[(BLACK, KING)]))
+		sqOrigin = Square(BSF(position.board.pieceBoards[BLACK][KING]))
 
 	bbToBoard = kingAttacks(sqOrigin)
 	pseudolegalMoves = []
@@ -375,9 +378,9 @@ def rookAttacks(sq: Square, blockers: np.uint64()):
 
 def generateRookMoves(position: Position):
 	if position.sideToMove == WHITE:
-		rooks = position.board.pieceBoards[(WHITE, ROOK)]
+		rooks = position.board.pieceBoards[WHITE][ROOK]
 	else:
-		rooks = position.board.pieceBoards[(BLACK, ROOK)]
+		rooks = position.board.pieceBoards[BLACK][ROOK]
 
 	moves = []
 	while rooks:
@@ -430,7 +433,7 @@ cpdef list generateBishopMoves(position: Position):
 	cdef size_t bishops
 	cdef list moves
 
-	bishops = position.board.pieceBoards[(position.sideToMove, BISHOP)]
+	bishops = position.board.pieceBoards[position.sideToMove][BISHOP]
 
 	moves = []
 	while bishops:
@@ -459,9 +462,9 @@ cpdef list generateBishopMoves(position: Position):
 		
 def generateQueenMoves(position):
 	if position.sideToMove == WHITE:
-		queens = position.board.pieceBoards[(WHITE, QUEEN)]
+		queens = position.board.pieceBoards[WHITE][QUEEN]
 	else:
-		queens = position.board.pieceBoards[(BLACK, QUEEN)]
+		queens = position.board.pieceBoards[BLACK][QUEEN]
 
 	moves = []
 	while queens:

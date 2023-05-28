@@ -1,7 +1,7 @@
 cdef class CBoard:
 
     cdef public fen
-    cdef public dict pieceBoards
+    cdef public list pieceBoards
 
     cdef public list pieceLocations
 

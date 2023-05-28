@@ -11,6 +11,8 @@ import re
 from bitboard cimport *
 from constants import *
 
+from cython.operator import dereference
+
 
 
 class Color(IntEnum):
@@ -217,20 +219,19 @@ cdef class CBoard:
 	def __init__(self, fen_str: str = None):
 		self.fen = Fen(fen_str)
 
-		self.pieceBoards = {
-			(WHITE, PAWN): <size_t> self.fen.whitePawns(),
-			(WHITE, BISHOP): self.fen.whiteBishops(),
-			(WHITE, KNIGHT): self.fen.whiteKnights(),
-			(WHITE, ROOK): self.fen.whiteRooks(),
-			(WHITE, QUEEN): self.fen.whiteQueens(),
-			(WHITE, KING): self.fen.whiteKing(),
-			(BLACK, PAWN): self.fen.blackPawns(),
-			(BLACK, BISHOP): self.fen.blackBishops(),
-			(BLACK, KNIGHT): self.fen.blackKnights(),
-			(BLACK, ROOK): self.fen.blackRooks(),
-			(BLACK, QUEEN): self.fen.blackQueens(),
-			(BLACK, KING): self.fen.blackKing()
-		}
+		# Access the piece boards through self.pieceBoards[color][piece]
+		self.pieceBoards = [[self.fen.whitePawns(), 
+							self.fen.whiteKnights(), 
+							self.fen.whiteBishops(),
+							self.fen.whiteRooks(),
+							self.fen.whiteQueens(),
+							self.fen.whiteKing()],
+							[self.fen.blackPawns(), 
+							self.fen.blackKnights(), 
+							self.fen.blackBishops(),
+							self.fen.blackRooks(),
+							self.fen.blackQueens(),
+							self.fen.blackKing()]]
 
 		self.pieceLocations = [None] * 64
 	
@@ -249,7 +250,7 @@ cdef class CBoard:
 				and self.blackBoard == other.blackBoard)
 
 	def doubledPawnCount(self, sideToMove: Color) -> int:
-		pawnBoard = self.pieceBoards[(WHITE, PAWN)] if sideToMove == WHITE else self.pieceBoards[(BLACK, PAWN)]
+		pawnBoard = self.pieceBoards[WHITE][PAWN] if sideToMove == WHITE else self.pieceBoards[BLACK][PAWN]
 		_file = A_FILE
 		
 		count = 0
@@ -263,7 +264,7 @@ cdef class CBoard:
 
 	def isolanis(self, sideToMove: Color) -> np.uint64():
 		#https://www.chessprogramming.org/Isolated_Pawns_(Bitboards)
-		pawnBoard = self.pieceBoards[(WHITE, PAWN)] if sideToMove == WHITE else self.pieceBoards[(BLACK, PAWN)]
+		pawnBoard = self.pieceBoards[WHITE][PAWN] if sideToMove == WHITE else self.pieceBoards[BLACK][PAWN]
 		fill = pawnBoard & ~fileFill(eastOne(pawnBoard))
 		fill &= pawnBoard & ~fileFill(westOne(pawnBoard))
 		return fill
@@ -273,9 +274,9 @@ cdef class CBoard:
 		
 	def blockedPawnCount(self, sideToMove: Color) -> int:
 		if sideToMove == WHITE:
-			return POPCOUNT(northOne(self.pieceBoards[(WHITE, PAWN)]) & self.occupied)
+			return POPCOUNT(northOne(self.pieceBoards[WHITE][PAWN]) & self.occupied)
 		else:
-			return POPCOUNT(southOne(self.pieceBoards[(BLACK, PAWN)]) & self.occupied)
+			return POPCOUNT(southOne(self.pieceBoards[BLACK][PAWN]) & self.occupied)
 
 	def makeMove(self, move: 'Move', color):
 		if move.flag == 0x04:
@@ -339,52 +340,12 @@ cdef class CBoard:
 		self.updateColorBoards()
 		
 	cpdef removePiece(self, color, piece, bbSquare):
-		self.pieceBoards[(color, piece)] = self.pieceBoards[(color, piece)] ^ bbSquare
+		self.pieceBoards[color][piece] = self.pieceBoards[color][piece] ^ bbSquare
 		self.pieceLocations[BSF(bbSquare)] = None
 		
 
-		""" if bbSquare & self.pieceBoards[(WHITE, PAWN)]:
-			self.pieceBoards[(WHITE, PAWN)] = self.pieceBoards[(WHITE, PAWN)] ^ bbSquare
-			return WHITE, PAWN
-		elif bbSquare & self.pieceBoards[(WHITE, BISHOP)]:
-			self.pieceBoards[(WHITE, BISHOP)] = self.pieceBoards[(WHITE, BISHOP)] ^ bbSquare
-			return WHITE, BISHOP
-		elif bbSquare & self.pieceBoards[(WHITE, KNIGHT)]:
-			self.pieceBoards[(WHITE, KNIGHT)] = self.pieceBoards[(WHITE, KNIGHT)] ^ bbSquare
-			return WHITE, KNIGHT
-		elif bbSquare & self.pieceBoards[(WHITE, ROOK)]:
-			self.pieceBoards[(WHITE, ROOK)] = self.pieceBoards[(WHITE, ROOK)] ^ bbSquare
-			return WHITE, ROOK
-		elif bbSquare & self.pieceBoards[(WHITE, QUEEN)]:
-			self.pieceBoards[(WHITE, QUEEN)] = self.pieceBoards[(WHITE, QUEEN)] ^ bbSquare
-			return WHITE, QUEEN
-		elif bbSquare & self.pieceBoards[(WHITE, KING)]:
-			self.pieceBoards[(WHITE, KING)] = self.pieceBoards[(WHITE, KING)] ^ bbSquare
-			return WHITE, KING
-		elif bbSquare & self.pieceBoards[(BLACK, PAWN)]:
-			self.pieceBoards[(BLACK, PAWN)] = self.pieceBoards[(BLACK, PAWN)] ^ bbSquare
-			return BLACK, PAWN
-		elif bbSquare & self.pieceBoards[(BLACK, BISHOP)]:
-			self.pieceBoards[(BLACK, BISHOP)] = self.pieceBoards[(BLACK, BISHOP)] ^ bbSquare
-			return BLACK, BISHOP
-		elif bbSquare & self.pieceBoards[(BLACK, KNIGHT)]:
-			self.pieceBoards[(BLACK, KNIGHT)] = self.pieceBoards[(BLACK, KNIGHT)] ^ bbSquare
-			return BLACK, KNIGHT
-		elif bbSquare & self.pieceBoards[(BLACK, ROOK)]:
-			self.pieceBoards[(BLACK, ROOK)] = self.pieceBoards[(BLACK, ROOK)] ^ bbSquare
-			return BLACK, ROOK
-		elif bbSquare & self.pieceBoards[(BLACK, QUEEN)]:
-			self.pieceBoards[(BLACK, QUEEN)] = self.pieceBoards[(BLACK, QUEEN)] ^ bbSquare
-			return BLACK, QUEEN
-		elif bbSquare & self.pieceBoards[(BLACK, KING)]:
-			self.pieceBoards[(BLACK, KING)] = self.pieceBoards[(BLACK, KING)] ^ bbSquare
-			return BLACK, KING
-
-		from printer import printBitboard
-		raise Exception(f"Could not remove piece. {bbSquare}") """
-
 	cpdef putPiece(self, piece, color, square):
-		self.pieceBoards[(color, piece)] |= square.bitboard()
+		self.pieceBoards[color][piece] |= square.bitboard()
 		self.pieceLocations[square.value] = piece
 
 	def pieceTypeAtSquare(self, square: Square):
@@ -392,17 +353,18 @@ cdef class CBoard:
 		return self.pieceLocations[square.value]
 
 	cpdef updateColorBoards(self):
-		self.whiteBoard = self.pieceBoards[(WHITE, PAWN)] | self.pieceBoards[(WHITE, KNIGHT)] | self.pieceBoards[(WHITE, BISHOP)] | self.pieceBoards[(WHITE, ROOK)] | self.pieceBoards[(WHITE, QUEEN)] | self.pieceBoards[(WHITE, KING)]
-		self.blackBoard = self.pieceBoards[(BLACK, PAWN)] | self.pieceBoards[(BLACK, KNIGHT)] | self.pieceBoards[(BLACK, BISHOP)] | self.pieceBoards[(BLACK, ROOK)] | self.pieceBoards[(BLACK, QUEEN)] | self.pieceBoards[(BLACK, KING)]
+		self.whiteBoard = self.pieceBoards[WHITE][PAWN] | self.pieceBoards[WHITE][KNIGHT] | self.pieceBoards[WHITE][BISHOP] | self.pieceBoards[WHITE][ROOK] | self.pieceBoards[WHITE][QUEEN] | self.pieceBoards[WHITE][KING]
+		self.blackBoard = self.pieceBoards[BLACK][PAWN] | self.pieceBoards[BLACK][KNIGHT] | self.pieceBoards[BLACK][BISHOP] | self.pieceBoards[BLACK][ROOK] | self.pieceBoards[BLACK][QUEEN] | self.pieceBoards[BLACK][KING]
 		self.occupied = self.whiteBoard | self.blackBoard
 
 	def onInitUpdatePieceLocations(self):
-		for color, pieceType in self.pieceBoards:
-			pieceBitboard = deepcopy(self.pieceBoards[(color, pieceType)])
-			while pieceBitboard:
-				squareIdx = BSF(pieceBitboard)
-				self.pieceLocations[squareIdx] = pieceType
-				pieceBitboard ^= 0x01 << squareIdx
+		for color in range(2):
+			for piece in range(6):
+				pieceBitboard = deepcopy(self.pieceBoards[color][piece])
+				while pieceBitboard:
+					squareIdx = BSF(pieceBitboard)
+					self.pieceLocations[squareIdx] = piece
+					pieceBitboard ^= 0x01 << squareIdx
 
 
 class Position:
@@ -514,11 +476,11 @@ class Position:
 		# Use NegaMax
 		# Todo: Add mobility count
 		# https://www.chessprogramming.org/Evaluation
-		_score = 9 * (POPCOUNT(self.board.pieceBoards[(WHITE, QUEEN)]) - POPCOUNT(self.board.pieceBoards[(BLACK, QUEEN)])) \
-			+ 5 * (POPCOUNT(self.board.pieceBoards[(WHITE, ROOK)]) - POPCOUNT(self.board.pieceBoards[(BLACK, ROOK)])) \
-			+ 3 * (POPCOUNT(self.board.pieceBoards[(WHITE, KNIGHT)]) - POPCOUNT(self.board.pieceBoards[(BLACK, KNIGHT)])) \
-			+ 3 * (POPCOUNT(self.board.pieceBoards[(WHITE, BISHOP)]) - POPCOUNT(self.board.pieceBoards[(BLACK, BISHOP)])) \
-			+ (POPCOUNT(self.board.pieceBoards[(WHITE, PAWN)]) - POPCOUNT(self.board.pieceBoards[(BLACK, PAWN)]))
+		_score = 9 * (POPCOUNT(self.board.pieceBoards[WHITE][QUEEN]) - POPCOUNT(self.board.pieceBoards[BLACK][QUEEN])) \
+			+ 5 * (POPCOUNT(self.board.pieceBoards[WHITE][ROOK]) - POPCOUNT(self.board.pieceBoards[BLACK][ROOK])) \
+			+ 3 * (POPCOUNT(self.board.pieceBoards[WHITE][KNIGHT]) - POPCOUNT(self.board.pieceBoards[BLACK][KNIGHT])) \
+			+ 3 * (POPCOUNT(self.board.pieceBoards[WHITE][BISHOP]) - POPCOUNT(self.board.pieceBoards[BLACK][BISHOP])) \
+			+ (POPCOUNT(self.board.pieceBoards[WHITE][PAWN]) - POPCOUNT(self.board.pieceBoards[BLACK][PAWN]))
 
 		_score -= 0.5 * (self.board.doubledPawnCount(WHITE) - self.board.doubledPawnCount(BLACK))
 		_score -= 0.5 * (self.board.isolatedPawnCount(WHITE) - self.board.isolatedPawnCount(BLACK))

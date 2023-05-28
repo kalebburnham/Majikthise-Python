@@ -50,7 +50,7 @@ class PawnMoveTests(unittest.TestCase):
 		'''
 
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = np.uint64(0x080100)
+		position.board.pieceBoards[WHITE][PAWN] = np.uint64(0x080100)
 		moves = wGeneratePawnPushMoves(position)
 		move1 = Move(origin=Square.A2, destination=Square.A3)
 		move2 = Move(origin=Square.D3, destination=Square.D4)
@@ -71,8 +71,8 @@ class PawnMoveTests(unittest.TestCase):
 		00000000
 		'''
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = 0x0104000000
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = 0x0400000000
+		position.board.pieceBoards[WHITE][PAWN] = 0x0104000000
+		position.board.pieceBoards[BLACK][PAWN] = 0x0400000000
 		position.board.updateColorBoards()
 		moves = wGeneratePawnPushMoves(position)
 		expectedMove = Move(origin=Square.A5, destination=Square.A6)
@@ -86,7 +86,7 @@ class PawnMoveTests(unittest.TestCase):
 		Place one pawn on A7. No moves should be returned.
 		'''
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = Square.A7.bitboard()
+		position.board.pieceBoards[WHITE][PAWN] = Square.A7.bitboard()
 		moves = wGeneratePawnPushMoves(position)
 		self.assertCountEqual(moves, [])
 
@@ -105,7 +105,7 @@ class PawnMoveTests(unittest.TestCase):
 		00000000
 		'''
 		position = Position()
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = 0x0400800000
+		position.board.pieceBoards[BLACK][PAWN] = 0x0400800000
 		moves = bGeneratePawnPushMoves(position)
 		move1 = Move(origin=Square.C5, destination=Square.C4)
 		move2 = Move(origin=Square.H3, destination=Square.H2)
@@ -116,10 +116,10 @@ class PawnMoveTests(unittest.TestCase):
 		generate their single space pushes.
 		'''
 		position = Position()
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = 0x0400800000
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = SECOND_RANK
+		position.board.pieceBoards[BLACK][PAWN] = 0x0400800000
+		position.board.pieceBoards[WHITE][PAWN] = SECOND_RANK
 		position.board.updateColorBoards()
-		position.sideToMove = Color.BLACK
+		position.sideToMove = BLACK
 		moves = bGeneratePawnPushMoves(position)
 		print(moves)
 		expectedMove = Move(origin=Square.C5, destination=Square.C4)
@@ -133,7 +133,7 @@ class PawnMoveTests(unittest.TestCase):
 		Place one pawn on A2. No moves should be returned.
 		'''
 		position = Position()
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = 0x100
+		position.board.pieceBoards[BLACK][PAWN] = 0x100
 		moves = bGeneratePawnPushMoves(position)
 		self.assertCountEqual(moves, [])
 
@@ -143,7 +143,7 @@ class PawnMoveTests(unittest.TestCase):
 		all move to the fourth rank.
 		'''
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = SECOND_RANK
+		position.board.pieceBoards[WHITE][PAWN] = SECOND_RANK
 		moves = wGenerateDoublePawnPushMoves(position)
 		expectedMoves = [Move(Square.A2, Square.A4, 0x01),
 						Move(Square.B2, Square.B4, 0x01),
@@ -160,7 +160,7 @@ class PawnMoveTests(unittest.TestCase):
 		position.makeMove(Move(origin=Square.E2, destination=Square.E4))
 		position.makeMove(Move(origin=Square.D7, destination=Square.D5))
 		moves = wGeneratePawnCaptures(position)
-		expectedMoves = [Move(Square.E4, Square.D5, 0x04, capturedPieceType=Piece.P)]
+		expectedMoves = [Move(Square.E4, Square.D5, 0x04, capturedPieceType=PAWN)]
 
 		self.assertCountEqual(moves, expectedMoves)
 
@@ -230,7 +230,7 @@ class KnightMoveTests(unittest.TestCase):
 
 	def test_wGenerateKnightMoves_NoKnightsExist(self):
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.N)] = 0
+		position.board.pieceBoards[WHITE][KNIGHT] = 0
 		moves = generateKnightMoves(position)
 		expected = []
 		self.assertEqual(moves, expected)
@@ -238,22 +238,22 @@ class KnightMoveTests(unittest.TestCase):
 	def test_wGenerateKnightMoves_CombinationAttackBlocked(self):
 		# simulate game after moves 1. Nc3 e5 2. Nf3 d5 3. Ng5 e4
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.N)] = Square.C3.bitboard() | Square.G5.bitboard()
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = 0x00E7000810000000
+		position.board.pieceBoards[WHITE][KNIGHT] = Square.C3.bitboard() | Square.G5.bitboard()
+		position.board.pieceBoards[BLACK][PAWN] = 0x00E7000810000000
 		position.board.updateColorBoards()
 		moves = generateKnightMoves(position)
 		expected = [
 			Move(origin=Square.C3, destination=Square.B1),
 			Move(origin=Square.C3, destination=Square.A4),
 			Move(origin=Square.C3, destination=Square.B5),
-			Move(origin=Square.C3, destination=Square.D5, flag=0x04, capturedPieceType=Piece.P),
-			Move(origin=Square.C3, destination=Square.E4, flag=0x04, capturedPieceType=Piece.P),
+			Move(origin=Square.C3, destination=Square.D5, flag=0x04, capturedPieceType=PAWN),
+			Move(origin=Square.C3, destination=Square.E4, flag=0x04, capturedPieceType=PAWN),
 			Move(origin=Square.G5, destination=Square.H3),
 			Move(origin=Square.G5, destination=Square.F3),
-			Move(origin=Square.G5, destination=Square.E4, flag=0x04, capturedPieceType=Piece.P),
+			Move(origin=Square.G5, destination=Square.E4, flag=0x04, capturedPieceType=PAWN),
 			Move(origin=Square.G5, destination=Square.E6),
-			Move(origin=Square.G5, destination=Square.F7, flag=0x04, capturedPieceType=Piece.P),
-			Move(origin=Square.G5, destination=Square.H7, flag=0x04, capturedPieceType=Piece.P)
+			Move(origin=Square.G5, destination=Square.F7, flag=0x04, capturedPieceType=PAWN),
+			Move(origin=Square.G5, destination=Square.H7, flag=0x04, capturedPieceType=PAWN)
 		]
 
 		self.assertCountEqual(moves, expected)
@@ -263,7 +263,7 @@ class KnightMoveTests(unittest.TestCase):
 		At the very first move, test the moves the black knights can make.
 		'''
 		position = Position()
-		position.sideToMove = Color.BLACK
+		position.sideToMove = BLACK
 		moves = generateKnightMoves(position)
 		expected = [
 			Move(origin=Square.B8, destination=Square.A6),
@@ -276,8 +276,8 @@ class KnightMoveTests(unittest.TestCase):
 
 	def test_bGenerateKnightMoves_NoKnightsExist(self):
 		position = Position()
-		position.sideToMove = Color.BLACK
-		position.board.pieceBoards[(Color.BLACK, Piece.N)] = 0
+		position.sideToMove = BLACK
+		position.board.pieceBoards[BLACK][KNIGHT] = 0
 		moves = generateKnightMoves(position)
 		expected = []
 		self.assertEqual(moves, expected)
@@ -285,9 +285,9 @@ class KnightMoveTests(unittest.TestCase):
 	def test_bGenerateKnightMoves_CombinationAttackBlocked(self):
 		# simulate game after moves 1. e4 Nc6 2. d4 Nf6
 		position = Position()
-		position.sideToMove = Color.BLACK
-		position.board.pieceBoards[(Color.BLACK, Piece.N)] = Square.C6.bitboard() | Square.F6.bitboard()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = 0x0000000018000000 # D4 and E4
+		position.sideToMove = BLACK
+		position.board.pieceBoards[BLACK][KNIGHT] = Square.C6.bitboard() | Square.F6.bitboard()
+		position.board.pieceBoards[WHITE][PAWN] = 0x0000000018000000 # D4 and E4
 		position.board.updateColorBoards()
 		moves = generateKnightMoves(position)
 
@@ -295,11 +295,11 @@ class KnightMoveTests(unittest.TestCase):
 			Move(origin=Square.C6, destination=Square.B8),
 			Move(origin=Square.C6, destination=Square.A5),
 			Move(origin=Square.C6, destination=Square.B4),
-			Move(origin=Square.C6, destination=Square.D4, flag=0x04, capturedPieceType=Piece.P),
+			Move(origin=Square.C6, destination=Square.D4, flag=0x04, capturedPieceType=PAWN),
 			Move(origin=Square.C6, destination=Square.E5),
 			Move(origin=Square.F6, destination=Square.G8),
 			Move(origin=Square.F6, destination=Square.D5),
-			Move(origin=Square.F6, destination=Square.E4, flag=0x04, capturedPieceType=Piece.P),
+			Move(origin=Square.F6, destination=Square.E4, flag=0x04, capturedPieceType=PAWN),
 			Move(origin=Square.F6, destination=Square.G4),
 			Move(origin=Square.F6, destination=Square.H5)
 		]
@@ -320,8 +320,8 @@ class KingMoveTests(unittest.TestCase):
 
 	def test_wGenerateKingMoves_e4e5(self):
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = (SEVENTH_RANK ^ Square.E7.bitboard()) | Square.E5.bitboard() # 1. e4 e5
+		position.board.pieceBoards[WHITE][PAWN] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
+		position.board.pieceBoards[BLACK][PAWN] = (SEVENTH_RANK ^ Square.E7.bitboard()) | Square.E5.bitboard() # 1. e4 e5
 		position.board.updateColorBoards()
 		moves = generateKingMoves(position)
 		expected = [Move(Square.E1, Square.E2)]
@@ -329,8 +329,8 @@ class KingMoveTests(unittest.TestCase):
 
 	def test_bGenerateKingMoves_StartingPosition(self):
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
-		position.sideToMove = Color.BLACK
+		position.board.pieceBoards[WHITE][PAWN] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
+		position.sideToMove = BLACK
 		moves = generateKingMoves(position)
 		expected = []
 		self.assertCountEqual(moves, expected)
@@ -340,9 +340,9 @@ class KingMoveTests(unittest.TestCase):
 		Test black's options after 1. e4 e5. Not a valid game, but all that matters is that the e7 pawn is moved.
 		'''
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = (SEVENTH_RANK ^ Square.E7.bitboard()) | Square.E5.bitboard() # 1. e4 e5
-		position.sideToMove = Color.BLACK
+		position.board.pieceBoards[WHITE][PAWN] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard() # 1. e4
+		position.board.pieceBoards[BLACK][PAWN] = (SEVENTH_RANK ^ Square.E7.bitboard()) | Square.E5.bitboard() # 1. e4 e5
+		position.sideToMove = BLACK
 		position.board.updateColorBoards()
 
 		moves = generateKingMoves(position)
@@ -352,8 +352,8 @@ class KingMoveTests(unittest.TestCase):
 
 	def test_wGenerateKingMoves_KingsideCastle(self):
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.N)] = Square.B1.bitboard()
-		position.board.pieceBoards[(Color.WHITE, Piece.B)] = Square.C1.bitboard()
+		position.board.pieceBoards[WHITE][KNIGHT] = Square.B1.bitboard()
+		position.board.pieceBoards[WHITE][BISHOP] = Square.C1.bitboard()
 		position.board.updateColorBoards()
 		moves = generateKingMoves(position)
 		expected = [
@@ -416,7 +416,7 @@ class RookMoveTests(unittest.TestCase):
 
 	def test_wGenerateRookMoves_a2a4(self):
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = (SECOND_RANK ^ Square.A2.bitboard()) | Square.A4.bitboard()
+		position.board.pieceBoards[WHITE][PAWN] = (SECOND_RANK ^ Square.A2.bitboard()) | Square.A4.bitboard()
 		position.board.updateColorBoards()
 		moves = generateRookMoves(position)
 		expected = [
@@ -433,20 +433,20 @@ class RookMoveTests(unittest.TestCase):
 			Move(Square.A4, Square.A1),
 			Move(Square.A4, Square.A2),
 			Move(Square.A4, Square.A3),
-			Move(Square.A4, Square.A5, 0x04, capturedPieceType=Piece.B),
+			Move(Square.A4, Square.A5, 0x04, capturedPieceType=BISHOP),
 			Move(Square.A4, Square.B4),
 			Move(Square.A4, Square.C4),
-			Move(Square.A4, Square.D4, 0x04, capturedPieceType=Piece.P),
+			Move(Square.A4, Square.D4, 0x04, capturedPieceType=PAWN),
 			Move(Square.E1, Square.F1),
 			Move(Square.E1, Square.E2),
 			Move(Square.E1, Square.E3),
-			Move(Square.E1, Square.E4, 0x04, capturedPieceType=Piece.P)
+			Move(Square.E1, Square.E4, 0x04, capturedPieceType=PAWN)
 		]
 		self.assertCountEqual(moves, expected)
 
 	def test_wGenerateRookMoves_NoRooksOnBoard(self):
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.R)] = 0
+		position.board.pieceBoards[WHITE][ROOK] = 0
 		moves = generateRookMoves(position)
 		expected = []
 		
@@ -454,7 +454,7 @@ class RookMoveTests(unittest.TestCase):
 
 	def test_bGenerateRookMoves_StartingPosition(self):
 		position = Position()
-		position.sideToMove = Color.BLACK
+		position.sideToMove = BLACK
 		moves = generateRookMoves(position)
 		expected = []
 		self.assertEqual(moves, expected)
@@ -482,7 +482,7 @@ class BishopMoveTests(unittest.TestCase):
 
 	def test_bGenerateBishopMoves_StartingBoard(self):
 		position = Position()
-		position.sideToMove = Color.BLACK
+		position.sideToMove = BLACK
 		moves = generateBishopMoves(position)
 		expected = []
 		self.assertCountEqual(moves, expected)
@@ -510,7 +510,7 @@ class BishopMoveTests(unittest.TestCase):
 
 	def test_bGenerateBishopMoves_AfterPawns(self):
 		position = Position('rnbqkbnr/p1p2p1p/1p4p1/3pp3/3PP3/1P4P1/P1P2P1P/RNBQKBNR b KQkq - 0 1')
-		position.sideToMove = Color.BLACK
+		position.sideToMove = BLACK
 		moves = generateBishopMoves(position)
 		expected = [
 			Move(Square.C8, Square.B7),
@@ -538,14 +538,14 @@ class BishopMoveTests(unittest.TestCase):
 
 	def test_bQueen_StartingBoard(self):
 		position = Position()
-		position.sideToMove = Color.BLACK
+		position.sideToMove = BLACK
 		moves = generateQueenMoves(position)
 		expected = []
 		self.assertCountEqual(moves, expected)
 
 	def test_wQueen_StartingBoardWithoutD2Pawn(self):
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = SECOND_RANK ^ Square.D2.bitboard()
+		position.board.pieceBoards[WHITE][PAWN] = SECOND_RANK ^ Square.D2.bitboard()
 		position.board.updateColorBoards()
 		moves = generateQueenMoves(position)
 		expected = [
@@ -554,15 +554,15 @@ class BishopMoveTests(unittest.TestCase):
 			Move(Square.D1, Square.D4),
 			Move(Square.D1, Square.D5),
 			Move(Square.D1, Square.D6),
-			Move(Square.D1, Square.D7, 0x04, capturedPieceType=Piece.P)
+			Move(Square.D1, Square.D7, 0x04, capturedPieceType=PAWN)
 		]
 		self.assertCountEqual(moves, expected)
 
 	def test_bQueen_StartingBoardWithoutD7Pawn(self):
 		position = Position()
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = SEVENTH_RANK ^ Square.D7.bitboard()
+		position.board.pieceBoards[BLACK][PAWN] = SEVENTH_RANK ^ Square.D7.bitboard()
 		position.board.updateColorBoards()
-		position.sideToMove = Color.BLACK
+		position.sideToMove = BLACK
 		moves = generateQueenMoves(position)
 		expected = [
 			Move(Square.D8, Square.D7),
@@ -570,7 +570,7 @@ class BishopMoveTests(unittest.TestCase):
 			Move(Square.D8, Square.D5),
 			Move(Square.D8, Square.D4),
 			Move(Square.D8, Square.D3),
-			Move(Square.D8, Square.D2, 0x04, capturedPieceType=Piece.P)
+			Move(Square.D8, Square.D2, 0x04, capturedPieceType=PAWN)
 		]
 		self.assertCountEqual(moves, expected)
 
@@ -619,9 +619,9 @@ class MakeMoveTests(unittest.TestCase):
 		position.makeMove(move)
 
 		expected = Position()
-		expected.board.pieceBoards[(Color.WHITE, Piece.P)] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard()
+		expected.board.pieceBoards[WHITE][PAWN] = (SECOND_RANK ^ Square.E2.bitboard()) | Square.E4.bitboard()
 		expected.board.updateColorBoards()
-		expected.sideToMove = Color.BLACK
+		expected.sideToMove = BLACK
 
 		
 
@@ -630,16 +630,16 @@ class MakeMoveTests(unittest.TestCase):
 	def test_makeMove_e4xd5(self):
 		# TODO The starting position should set the en passant target square in the fen (d6).
 		position = Position('rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1')
-		position.makeMove(Move(Square.E4, Square.D5, flag=0x04, capturedPieceType=Piece.P))
+		position.makeMove(Move(Square.E4, Square.D5, flag=0x04, capturedPieceType=PAWN))
 
 		expected = Position('rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1')
-		expected.sideToMove = Color.BLACK
+		expected.sideToMove = BLACK
 
 		self.assertEqual(position, expected)
 
 	def test_unmakeMove_e4xd5(self):
 		position = Position('rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 1')
-		move = Move(Square.E4, Square.D5, flag=0x04, capturedPieceType=Piece.P)
+		move = Move(Square.E4, Square.D5, flag=0x04, capturedPieceType=PAWN)
 		position.makeMove(move)
 		position.unmakeMove(move)
 
