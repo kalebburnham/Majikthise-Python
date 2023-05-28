@@ -1,52 +1,68 @@
 import numpy as np
 from ctypes import c_uint64
 
-A_FILE = np.uint64(0x0101010101010101)
-B_FILE = np.uint64(0x0202020202020202)
-C_FILE = np.uint64(0x0404040404040404)
-D_FILE = np.uint64(0x0808080808080808)
-E_FILE = np.uint64(0x1010101010101010)
-F_FILE = np.uint64(0x2020202020202020)
-G_FILE = np.uint64(0x4040404040404040)
-H_FILE = np.uint64(0x8080808080808080)
+import timeit
 
-FIRST_RANK = np.uint64(0x00000000000000FF)
-SECOND_RANK = np.uint64(0x000000000000FF00)
-THIRD_RANK = np.uint64(0x0000000000FF0000)
-FOURTH_RANK = np.uint64(0x00000000FF000000)
-FIFTH_RANK = np.uint64(0x000000FF00000000)
-SIXTH_RANK = np.uint64(0x0000FF0000000000)
-SEVENTH_RANK = np.uint64(0x00FF000000000000)
-EIGHTH_RANK = np.uint64(0xFF00000000000000)
+import time
 
-A1_H8_DIAGONAL = np.uint64(0x8040201008040201)
-H1_A8_ANTIDIAGONAL = np.uint64(0x0102040810204080)
-LIGHT_SQUARES = np.uint64(0x55AA55AA55AA55AA)
-DARK_SQUARES = np.uint64(0xAA55AA55AA55AA55)
+# Cython directive
+# cython: profile=True
 
-SQUARE_TO_BITBOARD = [np.uint64(0)] * 64
+# Cython has an issue with exposing C constants to Python.
+# This workaround was suggested 
+#A_FILE = A_FILE_enum
+#B_FILE = B_FILE_enum
+#C_FILE = C_FILE_enum
+#D_FILE = D_FILE_enum
+#E_FILE = E_FILE_enum
+#F_FILE = F_FILE_enum
+#G_FILE = G_FILE_enum
+#H_FILE = H_FILE_enum
+	
+
+#MYSTRING = MYSTRING_DEFINE 
+#A_FILE = A_FILE_DEFINE
+
+cdef size_t A_FILE = 0x0101010101010101
+cdef size_t B_FILE = 0x0202020202020202
+cdef size_t C_FILE = 0x0404040404040404
+cdef size_t D_FILE = 0x0808080808080808
+cdef size_t E_FILE = 0x1010101010101010
+cdef size_t F_FILE = 0x2020202020202020
+cdef size_t G_FILE = 0x4040404040404040
+cdef size_t H_FILE = 0x8080808080808080
+
+
 BITBOARD_TO_SQUARE = {}
 
-def initBitboards():
+cpdef void initBitboards():
 	# Provides access to a bitboard array to quickly switch between square number and bitboard representation.
 	for i in range(64):
-		SQUARE_TO_BITBOARD[i] = np.uint64(0x01) << np.uint64(i)
+		SQUARE_TO_BITBOARD[i] = <size_t> 0x01 << i
 		BITBOARD_TO_SQUARE[np.uint64(0x01)] = i
 
-def eastOne(b: np.uint64()) -> np.uint64():
-	return (b << np.uint64(1)) & ~A_FILE
+cpdef size_t eastOne(size_t b):
+	return (b << 1) & ~A_FILE
 
-def westOne(b: np.uint64()) -> np.uint64():
-	return (b >> np.uint64(1)) & ~H_FILE
+cpdef eastOneCython(size_t b):
+	cdef size_t afile = 0x0101010101010101
+	return b << 1 & ~afile
 
-def northOne(b: np.uint64()) -> np.uint64():
-	return b << np.uint64(8)
+cpdef size_t westOne(size_t b):
+	return b >> 1 & ~H_FILE
 
-def southOne(b: np.uint64()) -> np.uint64():
-	return b >> np.uint64(8)
+cpdef size_t northOne(size_t b):
+	return b << 8
+
+cpdef northOneCython(size_t b):
+	return b << 8
+
+cpdef size_t southOne(size_t b):
+	return b >> 8
 
 # These are called Kogge-Stone algorithms.
 # They also exist for lateral and diagonal fills.
+'''
 def northFill(b) -> np.uint64():
 	b |= (b << np.uint64(8))
 	b |= (b << np.uint64(16))
@@ -58,8 +74,21 @@ def southFill(b) -> np.uint64():
 	b |= (b >> np.uint64(16))
 	b |= (b >> np.uint64(32))
 	return b
+'''
 
-def fileFill(b) -> np.uint64():
+cpdef size_t northFill(size_t b):
+	b |= b << 8
+	b |= b << 16
+	b |= b << 32
+	return b
+
+cpdef size_t southFill(size_t b):
+	b |= b >> 8
+	b |= b >> 16
+	b |= b >> 32
+	return b
+
+cpdef size_t fileFill(size_t b):
 	return northFill(b) | southFill(b)
 
 bsf_index = [0,  1, 48,  2, 57, 49, 28,  3,
@@ -75,10 +104,12 @@ bsf_index = [0,  1, 48,  2, 57, 49, 28,  3,
 # Undefined for b == 0
 # Returns the index of the least significant one bit
 # https://www.chessprogramming.org/BitScan#DeBruijnMultiplation
+'''
 def BSF(b: np.uint64()) -> int:
 	debruijn64 = np.uint64(0x03f79d71b4cb0a89)
 	#assert b != 0 # Keeping the assert doubles the cost of the function from 1.5 to 3 nanoseconds.
 	return bsf_index[((b & -b) * debruijn64) >> np.uint64(58)]
+'''
 
 
 bsf2_index = [
@@ -91,9 +122,30 @@ bsf2_index = [
    25, 39, 14, 33, 19, 30,  9, 24,
    13, 18,  8, 12,  7,  6,  5, 63
 ]
+
 def BSF2(b: int):
 	debruijn64 = 0x03f79d71b4cb0a89
 	return bsf_index[c_uint64((b ^ (b-1)) * debruijn64).value  >> 58]
+
+cpdef size_t BSF(size_t b):
+	cdef size_t debruijn64 = 0x03f79d71b4cb0a89
+	return bsf2_index[((b ^ (b-1)) * debruijn64) >> 58]
+
+cpdef runBSFRepeated(size_t n):
+	cy = timeit.timeit('bb.BSF3(10483)', setup='import bitboard as bb', number=n)
+
+	setup = '''
+import bitboard as bb
+import numpy as np
+	'''
+	py = timeit.timeit('bb.BSF(np.uint64(10483))', setup=setup, number=n)
+	print(cy, py)
+	print('Cython is {}x faster than Python'.format(py/cy) )
+	#start = time.time()
+	#for i in range(n):
+	#	BSF(i)
+	#end = time.time()
+	#print(f"Total tm: {start-end}")
 
 bsr_index = [0, 47,  1, 56, 48, 27,  2, 60,
    57, 49, 41, 37, 28, 16,  3, 61,
@@ -108,23 +160,32 @@ bsr_index = [0, 47,  1, 56, 48, 27,  2, 60,
 # Returns the index of the most significant one bit
 # https://www.chessprogramming.org/BitScan#De_Bruijn_Multiplication_2
 # authors Kim Walisch, Mark Dickinson
-def BSR(b: np.uint64()) -> int:
-	debruijn64 = np.uint64(0x03f79d71b4cb0a89)
+cpdef size_t BSR(size_t b):
+	cdef size_t debruijn64 = 0x03f79d71b4cb0a89
 	# assert b != 0
-	b |= b >> np.uint(0x01)
-	b |= b >> np.uint(0x02)
-	b |= b >> np.uint(0x04)
-	b |= b >> np.uint(0x08)
-	b |= b >> np.uint(0x10)
-	b |= b >> np.uint(0x20)
-	return bsr_index[(b * debruijn64) >> np.uint64(58)]
+	b |= b >> 0x01
+	b |= b >> 0x02
+	b |= b >> 0x04
+	b |= b >> 0x08
+	b |= b >> 0x10
+	b |= b >> 0x20
+	return bsr_index[(b * debruijn64) >> 58]
 
 # https://www.chessprogramming.org/Population_Count#Brian_Kernighan.27s_way
+'''
 def POPCOUNT(b) -> int:
 	count = 0
 	while (b):
 		count += 1
 		b &= b - np.uint64(1) # reset LS1B
+	return count
+'''
+
+cpdef size_t POPCOUNT(size_t b):
+	cdef size_t count = 0
+	while (b):
+		count += 1
+		b &= b - 1 # reset LS1B
 	return count
 
 def generateBoard():

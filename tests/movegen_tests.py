@@ -8,6 +8,8 @@ from board import *
 from movegen import *
 from rays import *
 
+from constants import *
+
 class MovegenTests(unittest.TestCase):
 
 	@classmethod
@@ -69,8 +71,8 @@ class PawnMoveTests(unittest.TestCase):
 		00000000
 		'''
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = np.uint64(0x0104000000)
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = np.uint64(0x0400000000)
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = 0x0104000000
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = 0x0400000000
 		position.board.updateColorBoards()
 		moves = wGeneratePawnPushMoves(position)
 		expectedMove = Move(origin=Square.A5, destination=Square.A6)
@@ -103,7 +105,7 @@ class PawnMoveTests(unittest.TestCase):
 		00000000
 		'''
 		position = Position()
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = np.uint64(0x0400800000)
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = 0x0400800000
 		moves = bGeneratePawnPushMoves(position)
 		move1 = Move(origin=Square.C5, destination=Square.C4)
 		move2 = Move(origin=Square.H3, destination=Square.H2)
@@ -114,9 +116,12 @@ class PawnMoveTests(unittest.TestCase):
 		generate their single space pushes.
 		'''
 		position = Position()
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = np.uint64(0x0400800000)
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = 0x0400800000
 		position.board.pieceBoards[(Color.WHITE, Piece.P)] = SECOND_RANK
+		position.board.updateColorBoards()
+		position.sideToMove = Color.BLACK
 		moves = bGeneratePawnPushMoves(position)
+		print(moves)
 		expectedMove = Move(origin=Square.C5, destination=Square.C4)
 		self.assertCountEqual(moves, [expectedMove])
 
@@ -128,7 +133,7 @@ class PawnMoveTests(unittest.TestCase):
 		Place one pawn on A2. No moves should be returned.
 		'''
 		position = Position()
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = np.uint64(0x100)
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = 0x100
 		moves = bGeneratePawnPushMoves(position)
 		self.assertCountEqual(moves, [])
 
@@ -188,7 +193,7 @@ class KnightMoveTests(unittest.TestCase):
 		00000000
 		'''
 		sq = Square.G2
-		expected = np.uint64(0x00000000A0100010)
+		expected = 0x00000000A0100010
 		self.assertEqual(expected, knightAttacks(sq))
 
 	def test_knightAttacks_CornerOfBoard(self):
@@ -205,7 +210,7 @@ class KnightMoveTests(unittest.TestCase):
 		000000N0
 		00001000
 		'''
-		expected = np.uint64(0x00000000A0100010)
+		expected = 0x00000000A0100010
 		self.assertEqual(expected, knightAttacks(Square.G2))
 
 	def test_wGenerateKnightMoves_StartingPosition(self):
@@ -225,7 +230,7 @@ class KnightMoveTests(unittest.TestCase):
 
 	def test_wGenerateKnightMoves_NoKnightsExist(self):
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.N)] = np.uint64(0)
+		position.board.pieceBoards[(Color.WHITE, Piece.N)] = 0
 		moves = generateKnightMoves(position)
 		expected = []
 		self.assertEqual(moves, expected)
@@ -234,10 +239,9 @@ class KnightMoveTests(unittest.TestCase):
 		# simulate game after moves 1. Nc3 e5 2. Nf3 d5 3. Ng5 e4
 		position = Position()
 		position.board.pieceBoards[(Color.WHITE, Piece.N)] = Square.C3.bitboard() | Square.G5.bitboard()
-		position.board.pieceBoards[(Color.BLACK, Piece.P)] = np.uint64(0x00E7000810000000) # E4 and D5
+		position.board.pieceBoards[(Color.BLACK, Piece.P)] = 0x00E7000810000000
 		position.board.updateColorBoards()
 		moves = generateKnightMoves(position)
-
 		expected = [
 			Move(origin=Square.C3, destination=Square.B1),
 			Move(origin=Square.C3, destination=Square.A4),
@@ -273,7 +277,7 @@ class KnightMoveTests(unittest.TestCase):
 	def test_bGenerateKnightMoves_NoKnightsExist(self):
 		position = Position()
 		position.sideToMove = Color.BLACK
-		position.board.pieceBoards[(Color.BLACK, Piece.N)] = np.uint64(0)
+		position.board.pieceBoards[(Color.BLACK, Piece.N)] = 0
 		moves = generateKnightMoves(position)
 		expected = []
 		self.assertEqual(moves, expected)
@@ -283,7 +287,7 @@ class KnightMoveTests(unittest.TestCase):
 		position = Position()
 		position.sideToMove = Color.BLACK
 		position.board.pieceBoards[(Color.BLACK, Piece.N)] = Square.C6.bitboard() | Square.F6.bitboard()
-		position.board.pieceBoards[(Color.WHITE, Piece.P)] = np.uint64(0x0000000018000000) # D4 and E4
+		position.board.pieceBoards[(Color.WHITE, Piece.P)] = 0x0000000018000000 # D4 and E4
 		position.board.updateColorBoards()
 		moves = generateKnightMoves(position)
 
@@ -376,10 +380,10 @@ class RookMoveTests(unittest.TestCase):
 		initBitboards()
 
 	def test_rookAttacks_A1(self):
-		blockers = np.uint64(0)
+		blockers = 0
 		sq = Square.A1
 		bbAttacks = rookAttacks(sq, blockers)
-		expected = np.uint64(0x0101010101010100 | 0xfe)
+		expected = 0x0101010101010100 | 0xfe
 		self.assertEqual(bbAttacks, expected)
 
 	def test_rookAttacks_A8Starting(self):
@@ -394,14 +398,14 @@ class RookMoveTests(unittest.TestCase):
 		blockers = Square.D4.bitboard() | Square.E5.bitboard() | Square.E3.bitboard() | Square.F4.bitboard()
 		sq = Square.E4
 		bbAttacks = rookAttacks(sq, blockers)
-		expected = np.uint64(blockers)
+		expected = blockers
 		self.assertEqual(bbAttacks, expected)
 
 	def test_rookAttacks_SemiTrapped(self):
 		blockers = Square.D4.bitboard() | Square.E5.bitboard() | Square.E3.bitboard()
 		sq = Square.E4
 		bbAttacks = rookAttacks(sq, blockers)
-		expected = np.uint64(blockers) | Square.F4.bitboard() | Square.G4.bitboard() | Square.H4.bitboard()
+		expected = blockers | Square.F4.bitboard() | Square.G4.bitboard() | Square.H4.bitboard()
 		self.assertEqual(bbAttacks, expected)
 
 	def test_wGenerateRookMoves_StartingPosition(self):
@@ -442,7 +446,7 @@ class RookMoveTests(unittest.TestCase):
 
 	def test_wGenerateRookMoves_NoRooksOnBoard(self):
 		position = Position()
-		position.board.pieceBoards[(Color.WHITE, Piece.R)] = np.uint64(0)
+		position.board.pieceBoards[(Color.WHITE, Piece.R)] = 0
 		moves = generateRookMoves(position)
 		expected = []
 		
@@ -668,7 +672,7 @@ class PieceLocationTests(unittest.TestCase):
 		position = Position()
 		position.makeMove(Move(Square.E2, Square.E4, flag=0x01))
 
-
+'''
 def repeatNorthOne():
 		from random import randint
 		for _ in range(3000000):
@@ -692,12 +696,12 @@ class IntBitShiftSpeedTest(unittest.TestCase):
 
 def repeatBSF():
 	from random import randint
-	for _ in range(10000000):
+	for _ in range(100000):
 		BSF(np.uint64(randint(0, 2**63)))
 	
 def repeatBSF2():
 	from random import randint
-	for _ in range(10000000):
+	for _ in range(100000):
 		BSF2(c_uint64(randint(0, 2**63)).value)
 
 class BSFTests(unittest.TestCase):
@@ -709,6 +713,7 @@ class BSFTests(unittest.TestCase):
 	def test_BSF2(self):
 		import cProfile
 		cProfile.run('repeatBSF2()')
+'''
 
 if __name__ == '__main__':
 	unittest.main()

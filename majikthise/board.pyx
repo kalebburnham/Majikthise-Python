@@ -1,3 +1,6 @@
+# Cython directive
+# cython: profile=True
+
 from dataclasses import dataclass
 from enum import IntEnum
 from copy import deepcopy
@@ -5,7 +8,10 @@ from copy import deepcopy
 import numpy as np
 import re
 
-from bitboard import *
+from bitboard cimport *
+from constants import *
+
+
 
 class Color(IntEnum):
 	WHITE = 0
@@ -14,12 +20,20 @@ class Color(IntEnum):
 
 	def __invert__(self):
 		if self.value == 0:
-			return Color.BLACK
+			return BLACK
 		elif self.value == 1:
-			return Color.WHITE
+			return WHITE
 		else:
 			raise Exception("Error with the inversion of the Color enum.")
 
+cdef enum Piece:
+	P=1
+	N=2
+	B=3
+	R=4
+	Q=5
+	K=6
+"""
 class Piece(IntEnum):
 	P = 0
 	N = 1
@@ -27,6 +41,7 @@ class Piece(IntEnum):
 	R = 3
 	Q = 4
 	K = 5
+"""
 
 class Square(IntEnum):
 	A1 = 0
@@ -96,7 +111,11 @@ class Square(IntEnum):
 	NONE = 64
 
 	def bitboard(self):
-		return SQUARE_TO_BITBOARD[self.value]		
+		# This isn't being set.
+		return SQUARE_TO_BITBOARD[self.value]	
+
+	#cpdef size_t bitboardCython(self):
+	#	return 0x01 << self.value	
 
 	def isEmpty(self, board: 'CBoard'):
 		# Returns true if no white or black pieces occupy the square.
@@ -123,7 +142,7 @@ class Fen:
 		#self.occupied = _occupied()
 
 	def findPiece(self, pieceType):
-		bb = np.uint64(0)
+		cdef size_t bb = 0
 		squareIdx = 56
 		idx = 0
 		while squareIdx >= 0:
@@ -133,7 +152,7 @@ class Fen:
 				squareIdx -= 16
 				continue
 			elif char == pieceType:
-				bb |= Square(squareIdx).bitboard()
+				bb |= <size_t> 1 << squareIdx
 				idx += 1
 				squareIdx += 1
 			elif char.isnumeric():
@@ -146,10 +165,10 @@ class Fen:
 
 		return bb
 
-	def whitePawns(self) -> np.uint64():
+	def whitePawns(self):
 		return self.findPiece('P')
 
-	def blackPawns(self) -> np.uint64():
+	def blackPawns(self):
 		return self.findPiece('p')
 
 	def whiteKnights(self) -> np.uint64():
@@ -179,7 +198,7 @@ class Fen:
 	def whiteKing(self) -> np.uint64():
 		return self.findPiece('K')
 
-	def blackKing(self) -> np.uint64():
+	def blackKing(self):
 		return self.findPiece('k')
 
 	def whiteKingCastle(self):
@@ -194,30 +213,32 @@ class Fen:
 	def blackQueenCastle(self):
 		return 1 if re.search('[wb]\s.*q', self.fen) else 0
 
-class CBoard:
-	def __init__(self, fen: str = None):
-		self.fen = Fen(fen)
+cdef class CBoard:
+	def __init__(self, fen_str: str = None):
+		self.fen = Fen(fen_str)
 
 		self.pieceBoards = {
-			(Color.WHITE, Piece.P): self.fen.whitePawns(),
-			(Color.WHITE, Piece.B): self.fen.whiteBishops(),
-			(Color.WHITE, Piece.N): self.fen.whiteKnights(),
-			(Color.WHITE, Piece.R): self.fen.whiteRooks(),
-			(Color.WHITE, Piece.Q): self.fen.whiteQueens(),
-			(Color.WHITE, Piece.K): self.fen.whiteKing(),
-			(Color.BLACK, Piece.P): self.fen.blackPawns(),
-			(Color.BLACK, Piece.B): self.fen.blackBishops(),
-			(Color.BLACK, Piece.N): self.fen.blackKnights(),
-			(Color.BLACK, Piece.R): self.fen.blackRooks(),
-			(Color.BLACK, Piece.Q): self.fen.blackQueens(),
-			(Color.BLACK, Piece.K): self.fen.blackKing()
+			(WHITE, PAWN): <size_t> self.fen.whitePawns(),
+			(WHITE, BISHOP): self.fen.whiteBishops(),
+			(WHITE, KNIGHT): self.fen.whiteKnights(),
+			(WHITE, ROOK): self.fen.whiteRooks(),
+			(WHITE, QUEEN): self.fen.whiteQueens(),
+			(WHITE, KING): self.fen.whiteKing(),
+			(BLACK, PAWN): self.fen.blackPawns(),
+			(BLACK, BISHOP): self.fen.blackBishops(),
+			(BLACK, KNIGHT): self.fen.blackKnights(),
+			(BLACK, ROOK): self.fen.blackRooks(),
+			(BLACK, QUEEN): self.fen.blackQueens(),
+			(BLACK, KING): self.fen.blackKing()
 		}
 
 		self.pieceLocations = [None] * 64
 	
-		self.whiteBoard = None
-		self.blackBoard = None
-		self.occupied = None
+		self.whiteBoard = 0
+		self.blackBoard = 0
+		#self.whiteBoard = None
+		#self.blackBoard = None
+		self.occupied = 0
 		self.updateColorBoards()
 		self.onInitUpdatePieceLocations()
 
@@ -228,20 +249,21 @@ class CBoard:
 				and self.blackBoard == other.blackBoard)
 
 	def doubledPawnCount(self, sideToMove: Color) -> int:
-		pawnBoard = self.pieceBoards[(Color.WHITE, Piece.P)] if sideToMove == Color.WHITE else self.pieceBoards[(Color.BLACK, Piece.P)]
-		file = A_FILE
+		pawnBoard = self.pieceBoards[(WHITE, PAWN)] if sideToMove == WHITE else self.pieceBoards[(BLACK, PAWN)]
+		_file = A_FILE
+		
 		count = 0
 		for _ in range(7):
-			pawns_on_this_file = POPCOUNT(file & pawnBoard)
+			pawns_on_this_file = POPCOUNT(_file & pawnBoard)
 			if pawns_on_this_file > 1:
 				count += pawns_on_this_file
-			file <<= np.uint64(1)
+			_file <<= 1
 
 		return count
 
 	def isolanis(self, sideToMove: Color) -> np.uint64():
 		#https://www.chessprogramming.org/Isolated_Pawns_(Bitboards)
-		pawnBoard = self.pieceBoards[(Color.WHITE, Piece.P)] if sideToMove == Color.WHITE else self.pieceBoards[(Color.BLACK, Piece.P)]
+		pawnBoard = self.pieceBoards[(WHITE, PAWN)] if sideToMove == WHITE else self.pieceBoards[(BLACK, PAWN)]
 		fill = pawnBoard & ~fileFill(eastOne(pawnBoard))
 		fill &= pawnBoard & ~fileFill(westOne(pawnBoard))
 		return fill
@@ -250,16 +272,16 @@ class CBoard:
 		return POPCOUNT(self.isolanis(sideToMove))
 		
 	def blockedPawnCount(self, sideToMove: Color) -> int:
-		if sideToMove == Color.WHITE:
-			return POPCOUNT(northOne(self.pieceBoards[(Color.WHITE, Piece.P)]) & self.occupied)
+		if sideToMove == WHITE:
+			return POPCOUNT(northOne(self.pieceBoards[(WHITE, PAWN)]) & self.occupied)
 		else:
-			return POPCOUNT(southOne(self.pieceBoards[(Color.BLACK, Piece.P)]) & self.occupied)
+			return POPCOUNT(southOne(self.pieceBoards[(BLACK, PAWN)]) & self.occupied)
 
-	def makeMove(self, move: 'Move', color: Color):
+	def makeMove(self, move: 'Move', color):
 		if move.flag == 0x04:
 			# Remove the captured piece.
 			# Add color and piece type to this call. removePiece is one of the slowest functions due to branching.
-			self.removePiece(~color, move.capturedPieceType, move.destination.bitboard())
+			self.removePiece(INVERT(color), move.capturedPieceType, move.destination.bitboard())
 		# TODO Handle en passant and promotions and double pawn pushes
 
 		movingPiece = self.pieceTypeAtSquare(move.origin)
@@ -268,109 +290,110 @@ class CBoard:
 
 		if move.flag == 0x02:
 			# King Castle. Move the rook. Reset castling flags
-			if color == Color.WHITE:
-				self.removePiece(color, Piece.R, Square.H1.bitboard())
-				self.putPiece(Piece.R, Color.WHITE, Square.F1)
+			if color == WHITE:
+				self.removePiece(color, ROOK, Square.H1.bitboard())
+				self.putPiece(ROOK, WHITE, Square.F1)
 			else:
-				self.removePiece(color, Piece.R, Square.H8.bitboard())
-				self.putPiece(Piece.R, Color.BLACK, Square.F8)
+				self.removePiece(color, ROOK, Square.H8.bitboard())
+				self.putPiece(ROOK, BLACK, Square.F8)
 
 		if move.flag == 0x03:
 			# Queen Castle. Move the rook.
-			if color == Color.WHITE:
-				self.removePiece(color, Piece.R, Square.A1.bitboard())
-				self.putPiece(Piece.R, Color.WHITE, Square.D1)
+			if color == WHITE:
+				self.removePiece(color, ROOK, Square.A1.bitboard())
+				self.putPiece(ROOK, WHITE, Square.D1)
 			else:
-				self.removePiece(color, Piece.R, Square.A8.bitboard())
-				self.putPiece(Piece.R, Color.BLACK, Square.D8)
+				self.removePiece(color, ROOK, Square.A8.bitboard())
+				self.putPiece(ROOK, BLACK, Square.D8)
 
 		self.updateColorBoards()
 		
 
-	def unmakeMove(self, move: 'Move', color: Color):
+	def unmakeMove(self, move: 'Move', color):
 		movingPiece = self.pieceTypeAtSquare(move.destination)
 		self.removePiece(color, movingPiece, move.destination.bitboard())
 		self.putPiece(movingPiece, color, move.origin)
 
 		if move.flag == 0x02:
 			# King Castle. Put the rook back.
-			if color == Color.WHITE:
-				self.removePiece(color, Piece.R, Square.F1.bitboard())
-				self.putPiece(Piece.R, Color.WHITE, Square.H1)
+			if color == WHITE:
+				self.removePiece(color, ROOK, Square.F1.bitboard())
+				self.putPiece(ROOK, WHITE, Square.H1)
 			else:
-				self.removePiece(color, Piece.R, Square.F8.bitboard())
-				self.putPiece(Piece.R, Color.BLACK, Square.H8)
+				self.removePiece(color, ROOK, Square.F8.bitboard())
+				self.putPiece(ROOK, BLACK, Square.H8)
 		
 		if move.flag == 0x03:
 			# Queen Castle. Put the rook back.
-			if color == Color.WHITE:
-				self.removePiece(color, Piece.R, Square.D1.bitboard())
-				self.putPiece(Piece.R, Color.WHITE, Square.A1)
+			if color == WHITE:
+				self.removePiece(color, ROOK, Square.D1.bitboard())
+				self.putPiece(ROOK, WHITE, Square.A1)
 			else:
-				self.removePiece(color, Piece.R, Square.D8.bitboard())
-				self.putPiece(Piece.R, Color.BLACK, Square.A8)
+				self.removePiece(color, ROOK, Square.D8.bitboard())
+				self.putPiece(ROOK, BLACK, Square.A8)
 
 		if move.flag == 0x04:
 			# Puts the captured piece back.
-			self.putPiece(move.capturedPieceType, ~color, move.destination)
+			self.putPiece(move.capturedPieceType, INVERT(color), move.destination)
 
 		self.updateColorBoards()
 		
-	def removePiece(self, color: Color, piece: Piece, bbSquare):
+	cpdef removePiece(self, color, piece, bbSquare):
 		self.pieceBoards[(color, piece)] = self.pieceBoards[(color, piece)] ^ bbSquare
 		self.pieceLocations[BSF(bbSquare)] = None
 		
 
-		""" if bbSquare & self.pieceBoards[(Color.WHITE, Piece.P)]:
-			self.pieceBoards[(Color.WHITE, Piece.P)] = self.pieceBoards[(Color.WHITE, Piece.P)] ^ bbSquare
-			return Color.WHITE, Piece.P
-		elif bbSquare & self.pieceBoards[(Color.WHITE, Piece.B)]:
-			self.pieceBoards[(Color.WHITE, Piece.B)] = self.pieceBoards[(Color.WHITE, Piece.B)] ^ bbSquare
-			return Color.WHITE, Piece.B
-		elif bbSquare & self.pieceBoards[(Color.WHITE, Piece.N)]:
-			self.pieceBoards[(Color.WHITE, Piece.N)] = self.pieceBoards[(Color.WHITE, Piece.N)] ^ bbSquare
-			return Color.WHITE, Piece.N
-		elif bbSquare & self.pieceBoards[(Color.WHITE, Piece.R)]:
-			self.pieceBoards[(Color.WHITE, Piece.R)] = self.pieceBoards[(Color.WHITE, Piece.R)] ^ bbSquare
-			return Color.WHITE, Piece.R
-		elif bbSquare & self.pieceBoards[(Color.WHITE, Piece.Q)]:
-			self.pieceBoards[(Color.WHITE, Piece.Q)] = self.pieceBoards[(Color.WHITE, Piece.Q)] ^ bbSquare
-			return Color.WHITE, Piece.Q
-		elif bbSquare & self.pieceBoards[(Color.WHITE, Piece.K)]:
-			self.pieceBoards[(Color.WHITE, Piece.K)] = self.pieceBoards[(Color.WHITE, Piece.K)] ^ bbSquare
-			return Color.WHITE, Piece.K
-		elif bbSquare & self.pieceBoards[(Color.BLACK, Piece.P)]:
-			self.pieceBoards[(Color.BLACK, Piece.P)] = self.pieceBoards[(Color.BLACK, Piece.P)] ^ bbSquare
-			return Color.BLACK, Piece.P
-		elif bbSquare & self.pieceBoards[(Color.BLACK, Piece.B)]:
-			self.pieceBoards[(Color.BLACK, Piece.B)] = self.pieceBoards[(Color.BLACK, Piece.B)] ^ bbSquare
-			return Color.BLACK, Piece.B
-		elif bbSquare & self.pieceBoards[(Color.BLACK, Piece.N)]:
-			self.pieceBoards[(Color.BLACK, Piece.N)] = self.pieceBoards[(Color.BLACK, Piece.N)] ^ bbSquare
-			return Color.BLACK, Piece.N
-		elif bbSquare & self.pieceBoards[(Color.BLACK, Piece.R)]:
-			self.pieceBoards[(Color.BLACK, Piece.R)] = self.pieceBoards[(Color.BLACK, Piece.R)] ^ bbSquare
-			return Color.BLACK, Piece.R
-		elif bbSquare & self.pieceBoards[(Color.BLACK, Piece.Q)]:
-			self.pieceBoards[(Color.BLACK, Piece.Q)] = self.pieceBoards[(Color.BLACK, Piece.Q)] ^ bbSquare
-			return Color.BLACK, Piece.Q
-		elif bbSquare & self.pieceBoards[(Color.BLACK, Piece.K)]:
-			self.pieceBoards[(Color.BLACK, Piece.K)] = self.pieceBoards[(Color.BLACK, Piece.K)] ^ bbSquare
-			return Color.BLACK, Piece.K
+		""" if bbSquare & self.pieceBoards[(WHITE, PAWN)]:
+			self.pieceBoards[(WHITE, PAWN)] = self.pieceBoards[(WHITE, PAWN)] ^ bbSquare
+			return WHITE, PAWN
+		elif bbSquare & self.pieceBoards[(WHITE, BISHOP)]:
+			self.pieceBoards[(WHITE, BISHOP)] = self.pieceBoards[(WHITE, BISHOP)] ^ bbSquare
+			return WHITE, BISHOP
+		elif bbSquare & self.pieceBoards[(WHITE, KNIGHT)]:
+			self.pieceBoards[(WHITE, KNIGHT)] = self.pieceBoards[(WHITE, KNIGHT)] ^ bbSquare
+			return WHITE, KNIGHT
+		elif bbSquare & self.pieceBoards[(WHITE, ROOK)]:
+			self.pieceBoards[(WHITE, ROOK)] = self.pieceBoards[(WHITE, ROOK)] ^ bbSquare
+			return WHITE, ROOK
+		elif bbSquare & self.pieceBoards[(WHITE, QUEEN)]:
+			self.pieceBoards[(WHITE, QUEEN)] = self.pieceBoards[(WHITE, QUEEN)] ^ bbSquare
+			return WHITE, QUEEN
+		elif bbSquare & self.pieceBoards[(WHITE, KING)]:
+			self.pieceBoards[(WHITE, KING)] = self.pieceBoards[(WHITE, KING)] ^ bbSquare
+			return WHITE, KING
+		elif bbSquare & self.pieceBoards[(BLACK, PAWN)]:
+			self.pieceBoards[(BLACK, PAWN)] = self.pieceBoards[(BLACK, PAWN)] ^ bbSquare
+			return BLACK, PAWN
+		elif bbSquare & self.pieceBoards[(BLACK, BISHOP)]:
+			self.pieceBoards[(BLACK, BISHOP)] = self.pieceBoards[(BLACK, BISHOP)] ^ bbSquare
+			return BLACK, BISHOP
+		elif bbSquare & self.pieceBoards[(BLACK, KNIGHT)]:
+			self.pieceBoards[(BLACK, KNIGHT)] = self.pieceBoards[(BLACK, KNIGHT)] ^ bbSquare
+			return BLACK, KNIGHT
+		elif bbSquare & self.pieceBoards[(BLACK, ROOK)]:
+			self.pieceBoards[(BLACK, ROOK)] = self.pieceBoards[(BLACK, ROOK)] ^ bbSquare
+			return BLACK, ROOK
+		elif bbSquare & self.pieceBoards[(BLACK, QUEEN)]:
+			self.pieceBoards[(BLACK, QUEEN)] = self.pieceBoards[(BLACK, QUEEN)] ^ bbSquare
+			return BLACK, QUEEN
+		elif bbSquare & self.pieceBoards[(BLACK, KING)]:
+			self.pieceBoards[(BLACK, KING)] = self.pieceBoards[(BLACK, KING)] ^ bbSquare
+			return BLACK, KING
 
 		from printer import printBitboard
 		raise Exception(f"Could not remove piece. {bbSquare}") """
 
-	def putPiece(self, piece: Piece, color: Color, square: Square):
+	cpdef putPiece(self, piece, color, square):
 		self.pieceBoards[(color, piece)] |= square.bitboard()
 		self.pieceLocations[square.value] = piece
 
 	def pieceTypeAtSquare(self, square: Square):
+		# This might be acting up. Is pieceLocations correct?
 		return self.pieceLocations[square.value]
 
-	def updateColorBoards(self):
-		self.whiteBoard = self.pieceBoards[(Color.WHITE, Piece.P)] | self.pieceBoards[(Color.WHITE, Piece.N)] | self.pieceBoards[(Color.WHITE, Piece.B)] | self.pieceBoards[(Color.WHITE, Piece.R)] | self.pieceBoards[(Color.WHITE, Piece.Q)] | self.pieceBoards[(Color.WHITE, Piece.K)]
-		self.blackBoard = self.pieceBoards[(Color.BLACK, Piece.P)] | self.pieceBoards[(Color.BLACK, Piece.N)] | self.pieceBoards[(Color.BLACK, Piece.B)] | self.pieceBoards[(Color.BLACK, Piece.R)] | self.pieceBoards[(Color.BLACK, Piece.Q)] | self.pieceBoards[(Color.BLACK, Piece.K)]
+	cpdef updateColorBoards(self):
+		self.whiteBoard = self.pieceBoards[(WHITE, PAWN)] | self.pieceBoards[(WHITE, KNIGHT)] | self.pieceBoards[(WHITE, BISHOP)] | self.pieceBoards[(WHITE, ROOK)] | self.pieceBoards[(WHITE, QUEEN)] | self.pieceBoards[(WHITE, KING)]
+		self.blackBoard = self.pieceBoards[(BLACK, PAWN)] | self.pieceBoards[(BLACK, KNIGHT)] | self.pieceBoards[(BLACK, BISHOP)] | self.pieceBoards[(BLACK, ROOK)] | self.pieceBoards[(BLACK, QUEEN)] | self.pieceBoards[(BLACK, KING)]
 		self.occupied = self.whiteBoard | self.blackBoard
 
 	def onInitUpdatePieceLocations(self):
@@ -379,7 +402,7 @@ class CBoard:
 			while pieceBitboard:
 				squareIdx = BSF(pieceBitboard)
 				self.pieceLocations[squareIdx] = pieceType
-				pieceBitboard ^= np.uint64(0x01) << np.uint64(squareIdx)
+				pieceBitboard ^= 0x01 << squareIdx
 
 
 class Position:
@@ -389,7 +412,7 @@ class Position:
 		self.wAttacks: CBoard = None
 		self.bAttacks: CBoard = None
 
-		self.sideToMove: Color = Color.WHITE
+		self.sideToMove = WHITE
 		self.halfmove_clock = 0
 
 		# If 1, then castling is allowed.
@@ -451,7 +474,7 @@ class Position:
 		# If castling, update castle flags.
 		if move.flag == 0x02 or move.flag == 0x03:
 			# King castle
-			if self.sideToMove == Color.WHITE:
+			if self.sideToMove == WHITE:
 				self.wkCastle = 0
 				self.wqCastle = 0
 			else:
@@ -459,17 +482,17 @@ class Position:
 				self.bqCastle = 0
 
 
-		self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.BLACK
+		self.sideToMove = WHITE if self.sideToMove == BLACK else BLACK
 		return
 
 	def unmakeMove(self, move: 'Move'):
 		# TODO Captures, en passants, promotions, halfmove clock
-		#self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.BLACK
+		#self.sideToMove = WHITE if self.sideToMove == BLACK else BLACK
 		if self.debug:
 			file = open("Position_log.txt", "a")
 			file.write(f'{self.sideToMove} UNMAKE MOVE {move}\n')
 			file.close()
-		self.board.unmakeMove(move, ~self.sideToMove)
+		self.board.unmakeMove(move, INVERT(self.sideToMove))
 		self.moveSequence.pop()
 
 		# If castling, update castle flags.
@@ -477,31 +500,31 @@ class Position:
 		# It might be better to store castling flags in a stack in the Position.
 		if move.flag == 0x02 or move.flag == 0x03:
 			# King castle
-			if self.sideToMove == Color.WHITE:
+			if self.sideToMove == WHITE:
 				self.wkCastle = 1
 				self.wqCastle = 1
 			else:
 				self.bkCastle = 1
 				self.bqCastle = 1
 
-		self.sideToMove = Color.WHITE if self.sideToMove == Color.BLACK else Color.BLACK
+		self.sideToMove = WHITE if self.sideToMove == BLACK else BLACK
 		return
 
 	def score(self):
 		# Use NegaMax
 		# Todo: Add mobility count
 		# https://www.chessprogramming.org/Evaluation
-		_score = 9 * (POPCOUNT(self.board.pieceBoards[(Color.WHITE, Piece.Q)]) - POPCOUNT(self.board.pieceBoards[(Color.BLACK, Piece.Q)])) \
-			+ 5 * (POPCOUNT(self.board.pieceBoards[(Color.WHITE, Piece.R)]) - POPCOUNT(self.board.pieceBoards[(Color.BLACK, Piece.R)])) \
-			+ 3 * (POPCOUNT(self.board.pieceBoards[(Color.WHITE, Piece.N)]) - POPCOUNT(self.board.pieceBoards[(Color.BLACK, Piece.N)])) \
-			+ 3 * (POPCOUNT(self.board.pieceBoards[(Color.WHITE, Piece.B)]) - POPCOUNT(self.board.pieceBoards[(Color.BLACK, Piece.B)])) \
-			+ (POPCOUNT(self.board.pieceBoards[(Color.WHITE, Piece.P)]) - POPCOUNT(self.board.pieceBoards[(Color.BLACK, Piece.P)]))
+		_score = 9 * (POPCOUNT(self.board.pieceBoards[(WHITE, QUEEN)]) - POPCOUNT(self.board.pieceBoards[(BLACK, QUEEN)])) \
+			+ 5 * (POPCOUNT(self.board.pieceBoards[(WHITE, ROOK)]) - POPCOUNT(self.board.pieceBoards[(BLACK, ROOK)])) \
+			+ 3 * (POPCOUNT(self.board.pieceBoards[(WHITE, KNIGHT)]) - POPCOUNT(self.board.pieceBoards[(BLACK, KNIGHT)])) \
+			+ 3 * (POPCOUNT(self.board.pieceBoards[(WHITE, BISHOP)]) - POPCOUNT(self.board.pieceBoards[(BLACK, BISHOP)])) \
+			+ (POPCOUNT(self.board.pieceBoards[(WHITE, PAWN)]) - POPCOUNT(self.board.pieceBoards[(BLACK, PAWN)]))
 
-		_score -= 0.5 * (self.board.doubledPawnCount(Color.WHITE) - self.board.doubledPawnCount(Color.BLACK))
-		_score -= 0.5 * (self.board.isolatedPawnCount(Color.WHITE) - self.board.isolatedPawnCount(Color.BLACK))
-		_score -= 0.5 * (self.board.blockedPawnCount(Color.WHITE) - self.board.blockedPawnCount(Color.BLACK))
+		_score -= 0.5 * (self.board.doubledPawnCount(WHITE) - self.board.doubledPawnCount(BLACK))
+		_score -= 0.5 * (self.board.isolatedPawnCount(WHITE) - self.board.isolatedPawnCount(BLACK))
+		_score -= 0.5 * (self.board.blockedPawnCount(WHITE) - self.board.blockedPawnCount(BLACK))
 
-		return _score if self.sideToMove == Color.WHITE else -1 * _score
+		return _score if self.sideToMove == WHITE else -1 * _score
 
 	def traverse(self, ply):
 		if ply == 0:
@@ -536,6 +559,7 @@ class Move:
 			self.enpassantOrigin = origin if flag == 0x05 else Square.NONE
 
 			if flag == 0x04 and self.capturedPieceType == None:
+				print(self)
 				raise Exception("A capture move was generated with no defined capturedPieceType.")
 
 	def __eq__(self, other):

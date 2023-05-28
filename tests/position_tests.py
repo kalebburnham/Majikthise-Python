@@ -7,6 +7,7 @@ from bitboard import *
 from board import *
 from movegen import *
 from rays import *
+from constants import *
 
 class PositionTests(unittest.TestCase):
     def test_score_StartingPosition(self):
@@ -24,6 +25,11 @@ class PositionTests(unittest.TestCase):
         self.assertEqual(position.score(), 0)
 
 class MakeMoveTests(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        initBitboards()
+
     def test_MakeMoveOnBoard_e4(self):
         position = Position()
         move = Move(Square.E2, Square.E4)
@@ -57,6 +63,8 @@ class MakeMoveTests(unittest.TestCase):
         blackMove = Move(Square.E7, Square.E5)
         position.board.makeMove(whiteMove, Color.WHITE)
         position.board.makeMove(blackMove, Color.BLACK)
+
+        # An issue exists here. Unmake does not change the pieceBoards
         position.board.unmakeMove(blackMove, Color.BLACK)
         position.board.unmakeMove(whiteMove, Color.WHITE)
 
@@ -81,7 +89,13 @@ class MakeMoveTests(unittest.TestCase):
         position.unmakeMove(blackMove)
         position.unmakeMove(whiteMove)
 
+        #Something is wrong with the putpiece and removePiece
+
         expected = Position()
+
+        printCBoardDiff(position.board, expected.board)
+        printBitboard(position.board.blackBoard)
+        printBitboard(expected.board.blackBoard)
         self.assertEqual(position, expected)
 
     def test_KingsideCastle_makeMove(self):
@@ -158,7 +172,7 @@ class MakeMoveTests(unittest.TestCase):
         move1 = Move(Square.A2, Square.A3)
         move2 = Move(Square.B8, Square.A6)
         move3 = Move(Square.B2, Square.B4, flag=0x01)
-        move4 = Move(Square.A6, Square.B4, flag=0x04, capturedPieceType=Piece.P)
+        move4 = Move(Square.A6, Square.B4, flag=0x04, capturedPieceType=PAWN)
         
         position.makeMove(move1)
         position.makeMove(move2)
@@ -177,14 +191,14 @@ class MakeMoveTests(unittest.TestCase):
         position = Position('r1bqkbnr/pppppppp/n7/8/1P6/P7/2PPPPPP/RNBQKBNR b KQkq - 0 1')
         position.sideToMove = Color.BLACK
         
-        move = Move(Square.A6, Square.B4, flag=0x04, capturedPieceType=Piece.P)
+        move = Move(Square.A6, Square.B4, flag=0x04, capturedPieceType=PAWN)
         position.makeMove(move)
         position.unmakeMove(move)
         expected = Position('r1bqkbnr/pppppppp/n7/8/1P6/P7/2PPPPPP/RNBQKBNR b KQkq - 0 1')
         expected.sideToMove = Color.BLACK
         printCBoardDiff(position.board, expected.board)
         printBitboard(position.board.blackBoard)
-        printBitboard(position.board.blackBoard)
+        printBitboard(expected.board.blackBoard)
 
         self.assertEqual(position, expected)
 
@@ -216,7 +230,7 @@ class MakeMoveTests(unittest.TestCase):
                  Move(Square.E7, Square.E6),
                  Move(Square.C3, Square.D5),
                  Move(Square.E8, Square.E7),
-                 Move(Square.D5, Square.E7, flag=0x04, capturedPieceType=Piece.K)]
+                 Move(Square.D5, Square.E7, flag=0x04, capturedPieceType=KING)]
         for move in moves:
             position.makeMove(move)
 
@@ -255,8 +269,11 @@ class Traversals(unittest.TestCase):
         global position
         depth = 5
         position = Position()
-        import cProfile
-        cProfile.run('position.traverse(4)')
+        import cProfile, pstats
+        #cProfile.run('position.traverse(4)')
+        cProfile.runctx("position.traverse(4)", globals(), locals(), "Profile.prof")
+        s = pstats.Stats("Profile.prof")
+        s.strip_dirs().sort_stats("time").print_stats()
         #nMoves = position.traverse(depth)
         #print(nMoves)
 
